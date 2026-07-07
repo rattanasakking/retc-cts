@@ -27,8 +27,20 @@ class AppServiceProvider extends ServiceProvider
         // Throttle Livewire's AJAX update endpoint — the public student
         // search page has no auth to rely on, so this is the backstop
         // against scripted rapid-fire search requests.
+        //
+        // 'web' MUST be listed explicitly here: setUpdateRoute() fully
+        // replaces Livewire's default route registration rather than
+        // extending it, so without 'web' this route gets no session
+        // middleware at all — every request runs with a fresh, disconnected
+        // session that never reaches the response as a cookie. That doesn't
+        // break isolated interactions (search-as-you-type, filters) since
+        // they don't depend on state surviving to a *different* request,
+        // but it silently breaks anything that must persist across
+        // requests — most visibly login: Auth::attempt() succeeds and
+        // redirectIntended() fires, but the new session cookie never gets
+        // sent back, so the very next page load looks logged out again.
         Livewire::setUpdateRoute(function ($handle) {
-            return Route::post('/livewire/update', $handle)->middleware('throttle:60,1');
+            return Route::post('/livewire/update', $handle)->middleware('web', 'throttle:60,1');
         });
 
         // Notify admins the moment a student's career status is recorded.
