@@ -1,4 +1,3 @@
-<?php $filterKey = $selectedYear?->id.'-'.$selectedProgram.'-'.$selectedDegreeLevel; ?>
 <div class="space-y-6">
     <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
         <div>

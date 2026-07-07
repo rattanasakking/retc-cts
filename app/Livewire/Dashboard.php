@@ -151,6 +151,7 @@ class Dashboard extends Component
         }
 
         return view('livewire.dashboard', [
+            'filterKey' => $this->selectedYearId.'-'.$this->selectedProgram.'-'.$this->selectedDegreeLevel,
             'years' => $years,
             'programs' => $programs,
             'degreeLevels' => $degreeLevels,
