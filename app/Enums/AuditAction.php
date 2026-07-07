@@ -12,6 +12,8 @@ enum AuditAction: string
     case Create = 'create';
     case Update = 'update';
     case Delete = 'delete';
+    case Restore = 'restore';
+    case ForceDelete = 'force_delete';
 
     public function label(): string
     {
@@ -24,17 +26,19 @@ enum AuditAction: string
             self::Create => 'สร้างข้อมูล',
             self::Update => 'แก้ไขข้อมูล',
             self::Delete => 'ลบข้อมูล',
+            self::Restore => 'กู้คืนข้อมูล',
+            self::ForceDelete => 'ลบข้อมูลถาวร',
         };
     }
 
     public function badgeClass(): string
     {
         return match ($this) {
-            self::Login, self::Create => 'badge-success',
+            self::Login, self::Create, self::Restore => 'badge-success',
             self::Logout => 'badge-ghost',
             self::ImportCsv, self::ExportExcel, self::ExportPdf => 'badge-info',
             self::Update => 'badge-warning',
-            self::Delete => 'badge-error',
+            self::Delete, self::ForceDelete => 'badge-error',
         };
     }
 }

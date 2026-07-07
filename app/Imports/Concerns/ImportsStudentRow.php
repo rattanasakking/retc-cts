@@ -47,14 +47,20 @@ trait ImportsStudentRow
         $code = trim((string) $data['student_code']);
         $nationalId = isset($data['national_id']) && $data['national_id'] !== '' ? trim((string) $data['national_id']) : null;
 
-        if (Student::where('student_code', $code)->exists()) {
-            $this->recordFailure($rowNumber, ["รหัสนักศึกษา {$code} ซ้ำกับข้อมูลที่มีอยู่แล้ว"]);
+        // withTrashed(): student_code/national_id are unique at the DB
+        // level regardless of soft-delete state, so a code freed up by
+        // deleting a student is NOT actually reusable — checking only
+        // active rows here would pass, then fail at the INSERT with a
+        // confusing generic "concurrent duplicate" message instead of
+        // naming the real conflict.
+        if (Student::withTrashed()->where('student_code', $code)->exists()) {
+            $this->recordFailure($rowNumber, ["รหัสนักศึกษา {$code} ซ้ำกับข้อมูลที่มีอยู่แล้ว (หรือเคยถูกลบไปก่อนหน้านี้)"]);
 
             return null;
         }
 
-        if ($nationalId && Student::where('national_id', $nationalId)->exists()) {
-            $this->recordFailure($rowNumber, ["เลขบัตรประชาชน {$nationalId} ซ้ำกับข้อมูลที่มีอยู่แล้ว"]);
+        if ($nationalId && Student::withTrashed()->where('national_id', $nationalId)->exists()) {
+            $this->recordFailure($rowNumber, ["เลขบัตรประชาชน {$nationalId} ซ้ำกับข้อมูลที่มีอยู่แล้ว (หรือเคยถูกลบไปก่อนหน้านี้)"]);
 
             return null;
         }

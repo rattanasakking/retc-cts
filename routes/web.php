@@ -13,6 +13,7 @@ use App\Livewire\Settings\SystemInformation as SettingsSystemInformation;
 use App\Livewire\Settings\Users as SettingsUsers;
 use App\Livewire\Students\Index as StudentsIndex;
 use App\Livewire\Students\StudentImporter;
+use App\Livewire\Students\Trash as StudentsTrash;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -41,6 +42,7 @@ Route::middleware(['auth', 'role:admin,teacher,department_head'])
 
 Route::middleware(['auth', 'role:admin,department_head'])->group(function () {
     Route::get('/students/import', StudentImporter::class)->name('students.import');
+    Route::get('/students/trash', StudentsTrash::class)->name('students.trash');
 
     Route::get('/students/import/template', function () {
         $csv = "\xEF\xBB\xBF".implode(',', [
