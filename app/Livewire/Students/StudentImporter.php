@@ -5,6 +5,7 @@ namespace App\Livewire\Students;
 use App\Imports\SchoolJobTrackingImport;
 use App\Imports\StudentsImport;
 use App\Models\ImportLog;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -62,6 +63,20 @@ class StudentImporter extends Component
             : new StudentsImport($importLog->id);
 
         Excel::queueImport($import, $storedPath, 'local');
+
+        // This host's cron only offers hourly-granularity scheduled tasks —
+        // far too slow for someone actively watching this page's progress
+        // bar. Drain the queue immediately instead of waiting for that
+        // hourly `queue:work` run; --max-time bounds this so it can't hang
+        // the request forever, and --stop-when-empty returns as soon as
+        // this import (and anything else queued) finishes. A file too large
+        // to finish within the budget just leaves its remaining chunks
+        // queued for the hourly task to pick up as a fallback.
+        Artisan::call('queue:work', [
+            '--stop-when-empty' => true,
+            '--max-time' => 50,
+            '--sleep' => 1,
+        ]);
 
         $this->activeImportLogId = $importLog->id;
         $this->reset('file');
