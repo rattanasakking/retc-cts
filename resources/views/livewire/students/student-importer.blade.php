@@ -4,12 +4,14 @@
             <h1 class="text-2xl font-bold">นำเข้าข้อมูลนักศึกษา</h1>
             <p class="text-sm text-base-content/60">นำเข้าไฟล์ CSV พร้อมตรวจสอบความถูกต้องและข้อมูลซ้ำอัตโนมัติ</p>
         </div>
-        <a href="{{ route('students.import.template') }}" class="btn btn-outline btn-sm gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-            ดาวน์โหลดเทมเพลต CSV
-        </a>
+        @if ($format === 'standard')
+            <a href="{{ route('students.import.template') }}" class="btn btn-outline btn-sm gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                ดาวน์โหลดเทมเพลต CSV
+            </a>
+        @endif
     </div>
 
     {{-- Upload form --}}
@@ -18,6 +20,14 @@
             <h2 class="card-title text-base">อัปโหลดไฟล์</h2>
 
             <form wire:submit="import" class="space-y-4">
+                <div>
+                    <label class="label" for="import-format"><span class="label-text">รูปแบบไฟล์</span></label>
+                    <select id="import-format" wire:model.live="format" class="select select-bordered select-sm w-full max-w-md">
+                        <option value="standard">เทมเพลตมาตรฐานของระบบ</option>
+                        <option value="school_report">รายงานติดตามภาวะการมีงานทำ (ไฟล์จากระบบโรงเรียนโดยตรง)</option>
+                    </select>
+                </div>
+
                 <div>
                     <input
                         type="file"
@@ -42,7 +52,11 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-info shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                 </svg>
-                <span>คอลัมน์ที่ต้องมี: <code class="text-xs">student_code, first_name, last_name, academic_year</code> — คอลัมน์เสริม: <code class="text-xs">national_id, prefix, program, degree_level, phone, email, status</code>. ระบบจะข้ามแถวที่ข้อมูลซ้ำกับที่มีอยู่แล้วโดยอัตโนมัติ พร้อมบันทึกเหตุผลไว้ในประวัติการนำเข้า</span>
+                @if ($format === 'standard')
+                    <span>คอลัมน์ที่ต้องมี: <code class="text-xs">student_code, first_name, last_name, academic_year</code> — คอลัมน์เสริม: <code class="text-xs">national_id, prefix, program, degree_level, phone, email, status</code>. ระบบจะข้ามแถวที่ข้อมูลซ้ำกับที่มีอยู่แล้วโดยอัตโนมัติ พร้อมบันทึกเหตุผลไว้ในประวัติการนำเข้า</span>
+                @else
+                    <span>อัปโหลดไฟล์ CSV ที่ส่งออกจากระบบของโรงเรียน (รายงานติดตามภาวะการมีงานทำและศึกษาต่อ) ได้โดยตรง ไม่ต้องแก้ไขคอลัมน์เอง — ระบบจะข้ามหัวรายงาน 5 แถวแรกให้อัตโนมัติ พร้อมบันทึกสถานะการทำงาน/ศึกษาต่อของนักศึกษาแต่ละคนจากคอลัมน์ "ชื่อสถานที่ทำงาน" และ "ชื่อสถานศึกษาเรียนต่อ" ในไฟล์</span>
+                @endif
             </div>
         </div>
     </div>
