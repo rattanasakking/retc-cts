@@ -1,0 +1,48 @@
+@import 'tailwindcss';
+@plugin 'daisyui';
+@plugin 'daisyui/theme' {
+    name: 'retccts';
+    default: true;
+    prefersdark: false;
+    color-scheme: 'light';
+
+    /* Blue brand ramp */
+    --color-primary: oklch(52% 0.19 258);
+    --color-primary-content: oklch(98% 0.01 258);
+    --color-secondary: oklch(68% 0.13 228);
+    --color-secondary-content: oklch(98% 0.01 228);
+    --color-accent: oklch(74% 0.12 202);
+    --color-accent-content: oklch(18% 0.02 202);
+
+    /* Dark navy surface, used for the sidebar */
+    --color-neutral: oklch(27% 0.045 258);
+    --color-neutral-content: oklch(94% 0.015 258);
+
+    /* Neutrals biased toward the brand hue instead of flat gray */
+    --color-base-100: oklch(100% 0 0);
+    --color-base-200: oklch(97% 0.006 258);
+    --color-base-300: oklch(92% 0.01 258);
+    --color-base-content: oklch(23% 0.02 258);
+
+    --color-info: oklch(62% 0.15 234);
+    --color-info-content: oklch(98% 0.01 234);
+    --color-success: oklch(64% 0.15 155);
+    --color-success-content: oklch(98% 0.02 155);
+    --color-warning: oklch(78% 0.15 80);
+    --color-warning-content: oklch(20% 0.02 80);
+    --color-error: oklch(60% 0.21 25);
+    --color-error-content: oklch(98% 0.01 25);
+
+    --radius-box: 0.75rem;
+    --radius-field: 0.5rem;
+}
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}

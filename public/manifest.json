@@ -1,0 +1,26 @@
+{
+    "name": "RETC Smart Career Tracking System",
+    "short_name": "RETC-CTS",
+    "description": "ระบบติดตามภาวะการมีงานทำของผู้สำเร็จการศึกษา",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#eef2f7",
+    "theme_color": "#2563a8",
+    "lang": "th",
+    "icons": [
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "maskable"
+        }
+    ]
+}

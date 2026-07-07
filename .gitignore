@@ -1,0 +1,31 @@
+*.log
+.DS_Store
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+/.fleet
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+
+# dompdf's font cache (config/dompdf.php font_dir/font_cache). Regenerated
+# automatically the first time a PDF is exported. Also, on this project it
+# currently caches a copy of Tahoma (see app/Console/Commands/RegisterPdfThaiFont.php)
+# which is a Windows-bundled font and not freely redistributable — must
+# never be committed regardless of the "just a cache" reason above.
+/storage/fonts
+Homestead.json
+Homestead.yaml
+Thumbs.db
