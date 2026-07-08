@@ -63,6 +63,8 @@ class Dashboard extends Component
         $relatedNo = 0;
         $departmentRows = collect();
         $provinceRows = collect();
+        $topCompanies = collect();
+        $topInstitutions = collect();
 
         if ($year) {
             $graduates = $this->applyStudentFilters(
@@ -96,12 +98,24 @@ class Dashboard extends Component
 
             $topProvince = $provinceRows->first()->name ?? null;
 
-            $topCompany = (clone $working)
+            $topCompanies = (clone $working)
                 ->whereNotNull('company_name')
-                ->selectRaw('company_name, count(*) as total')
+                ->selectRaw('company_name as name, count(*) as total')
                 ->groupBy('company_name')
                 ->orderByDesc('total')
-                ->value('company_name');
+                ->limit(5)
+                ->get();
+
+            $topCompany = $topCompanies->first()->name ?? null;
+
+            $topInstitutions = $careerBase()
+                ->where('status', 'further_study')
+                ->whereNotNull('institution_name')
+                ->selectRaw('institution_name as name, count(*) as total')
+                ->groupBy('institution_name')
+                ->orderByDesc('total')
+                ->limit(5)
+                ->get();
 
             $relatedYes = (clone $working)->where('is_related_to_major', true)->count();
             $relatedNo = (clone $working)->where('is_related_to_major', false)->count();
@@ -203,6 +217,9 @@ class Dashboard extends Component
                 'response_rate' => $trendResponseRate,
                 'employed_rate' => $trendEmployedRate,
             ],
+            'topCompanies' => $topCompanies,
+            'topInstitutions' => $topInstitutions,
+            'topProvinces' => $provinceRows->take(5),
             'provinceMap' => $provinceRows
                 ->filter(fn ($row) => $row->lat !== null && $row->lng !== null)
                 ->map(fn ($row) => [

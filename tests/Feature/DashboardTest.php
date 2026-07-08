@@ -165,6 +165,62 @@ class DashboardTest extends TestCase
         $this->assertSame(0, $provinceMap[0]['further_study']);
     }
 
+    public function test_top_5_lists_rank_institutions_companies_and_provinces_by_count(): void
+    {
+        $year = AcademicYear::factory()->create(['is_active' => true]);
+        $province = ThaiProvince::create(['id' => 20, 'name_th' => 'ชลบุรี', 'lat' => 13.36, 'lng' => 100.98]);
+        $otherProvince = ThaiProvince::create(['id' => 10, 'name_th' => 'นนทบุรี']);
+
+        // 2 students at "บริษัท ก" in ชลบุรี, 1 at "บริษัท ข" in นนทบุรี.
+        foreach (range(1, 2) as $i) {
+            $student = Student::factory()->graduated()->create(['academic_year_id' => $year->id]);
+            CareerStatus::factory()->create([
+                'student_id' => $student->id,
+                'academic_year_id' => $year->id,
+                'status' => CareerStatusType::Employed,
+                'company_name' => 'บริษัท ก',
+                'work_province_id' => $province->id,
+            ]);
+        }
+
+        $soloStudent = Student::factory()->graduated()->create(['academic_year_id' => $year->id]);
+        CareerStatus::factory()->create([
+            'student_id' => $soloStudent->id,
+            'academic_year_id' => $year->id,
+            'status' => CareerStatusType::Employed,
+            'company_name' => 'บริษัท ข',
+            'work_province_id' => $otherProvince->id,
+        ]);
+
+        // 2 students further-studying at the same institution.
+        foreach (range(1, 2) as $i) {
+            $student = Student::factory()->graduated()->create(['academic_year_id' => $year->id]);
+            CareerStatus::factory()->create([
+                'student_id' => $student->id,
+                'academic_year_id' => $year->id,
+                'status' => CareerStatusType::FurtherStudy,
+                'institution_name' => 'มหาวิทยาลัยเชียงใหม่',
+            ]);
+        }
+
+        $user = User::factory()->create();
+
+        $component = Livewire::actingAs($user)->test(Dashboard::class);
+
+        $topCompanies = $component->viewData('topCompanies');
+        $this->assertSame('บริษัท ก', $topCompanies[0]->name);
+        $this->assertSame(2, $topCompanies[0]->total);
+        $this->assertSame('บริษัท ข', $topCompanies[1]->name);
+
+        $topInstitutions = $component->viewData('topInstitutions');
+        $this->assertSame('มหาวิทยาลัยเชียงใหม่', $topInstitutions[0]->name);
+        $this->assertSame(2, $topInstitutions[0]->total);
+
+        $topProvinces = $component->viewData('topProvinces');
+        $this->assertSame('ชลบุรี', $topProvinces[0]->name);
+        $this->assertSame(2, $topProvinces[0]->total);
+    }
+
     public function test_related_to_major_rate_is_computed_from_working_students_only(): void
     {
         $year = AcademicYear::factory()->create(['is_active' => true]);

@@ -84,7 +84,7 @@
     </div>
 
     {{-- Extra metrics --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="card bg-base-100 shadow">
             <div class="card-body p-4">
                 <p class="text-xs text-base-content/60">เงินเดือนเฉลี่ย</p>
@@ -95,20 +95,68 @@
         </div>
         <div class="card bg-base-100 shadow">
             <div class="card-body p-4">
-                <p class="text-xs text-base-content/60">จังหวัดที่ทำงานมากที่สุด</p>
-                <p class="text-lg font-bold truncate">{{ $metrics['top_province'] ?: '—' }}</p>
-            </div>
-        </div>
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4">
-                <p class="text-xs text-base-content/60">บริษัทที่มีนักศึกษาทำงานมากที่สุด</p>
-                <p class="text-lg font-bold truncate">{{ $metrics['top_company'] ?: '—' }}</p>
-            </div>
-        </div>
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4">
                 <p class="text-xs text-base-content/60">สัดส่วนงานตรงสาย</p>
                 <p class="text-lg font-bold tabular-nums">{{ $metrics['related_to_major_rate'] }}%</p>
+            </div>
+        </div>
+    </div>
+
+    {{-- Top 5 rankings --}}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h2 class="card-title text-base">สถานศึกษาที่ศึกษาต่อมากที่สุด</h2>
+                <ol class="mt-1 space-y-2">
+                    @forelse ($topInstitutions as $i => $row)
+                        <li class="flex items-center justify-between gap-2 text-sm">
+                            <span class="flex items-center gap-2 min-w-0">
+                                <span class="badge badge-sm badge-ghost shrink-0">{{ $i + 1 }}</span>
+                                <span class="truncate">{{ $row->name }}</span>
+                            </span>
+                            <span class="font-semibold tabular-nums shrink-0">{{ number_format($row->total) }} คน</span>
+                        </li>
+                    @empty
+                        <li class="text-sm text-base-content/50">ยังไม่มีข้อมูล</li>
+                    @endforelse
+                </ol>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h2 class="card-title text-base">บริษัทที่มีนักศึกษาทำงานมากที่สุด</h2>
+                <ol class="mt-1 space-y-2">
+                    @forelse ($topCompanies as $i => $row)
+                        <li class="flex items-center justify-between gap-2 text-sm">
+                            <span class="flex items-center gap-2 min-w-0">
+                                <span class="badge badge-sm badge-ghost shrink-0">{{ $i + 1 }}</span>
+                                <span class="truncate">{{ $row->name }}</span>
+                            </span>
+                            <span class="font-semibold tabular-nums shrink-0">{{ number_format($row->total) }} คน</span>
+                        </li>
+                    @empty
+                        <li class="text-sm text-base-content/50">ยังไม่มีข้อมูล</li>
+                    @endforelse
+                </ol>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h2 class="card-title text-base">จังหวัดที่ทำงาน/ศึกษาต่อมากที่สุด</h2>
+                <ol class="mt-1 space-y-2">
+                    @forelse ($topProvinces as $i => $row)
+                        <li class="flex items-center justify-between gap-2 text-sm">
+                            <span class="flex items-center gap-2 min-w-0">
+                                <span class="badge badge-sm badge-ghost shrink-0">{{ $i + 1 }}</span>
+                                <span class="truncate">{{ $row->name }}</span>
+                            </span>
+                            <span class="font-semibold tabular-nums shrink-0">{{ number_format($row->total) }} คน</span>
+                        </li>
+                    @empty
+                        <li class="text-sm text-base-content/50">ยังไม่มีข้อมูล</li>
+                    @endforelse
+                </ol>
             </div>
         </div>
     </div>
