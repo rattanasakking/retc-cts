@@ -60,3 +60,12 @@
 .sidebar-nav-scroll::-webkit-scrollbar {
     display: none;
 }
+
+/* daisyUI's lg:drawer-open variant puts its own overflow-y:auto directly on
+   .drawer-side, which — combined with the sidebar's nav content being taller
+   than the viewport — made the *page* scroll instead of just the nav (and
+   showed the browser's native scrollbar in the process). The nav's own
+   .sidebar-nav-scroll handles scrolling; .drawer-side must not compete with it. */
+.drawer-side {
+    overflow: hidden;
+}

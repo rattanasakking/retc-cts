@@ -41,7 +41,7 @@
                 <label for="app-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
 
                 <aside
-                    class="min-h-full w-64 bg-neutral text-neutral-content flex flex-col transition-[width] duration-200"
+                    class="h-full w-64 bg-neutral text-neutral-content flex flex-col transition-[width] duration-200"
                     :class="collapsed ? 'lg:w-20' : 'lg:w-64'"
                 >
                     {{-- Brand --}}
@@ -58,7 +58,7 @@
                     </div>
 
                     {{-- Nav --}}
-                    <nav class="sidebar-nav-scroll flex-1 overflow-y-auto px-2 py-4 space-y-6">
+                    <nav class="sidebar-nav-scroll flex-1 min-h-0 overflow-y-auto px-2 py-4 space-y-6">
                         <div>
                             <p x-show="!collapsed" class="px-3 mb-1 text-xs font-semibold uppercase tracking-wider text-neutral-content/40">ภาพรวม</p>
                             <ul class="menu w-full p-0 gap-1">

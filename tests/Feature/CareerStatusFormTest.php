@@ -184,6 +184,66 @@ class CareerStatusFormTest extends TestCase
         $this->assertSame(1, CareerStatus::where('student_id', $student->id)->where('is_current', true)->count());
     }
 
+    public function test_institution_name_is_required_when_status_is_further_study(): void
+    {
+        $teacher = User::factory()->create(['role' => UserRole::Teacher]);
+        $year = AcademicYear::factory()->create();
+        $student = Student::factory()->create(['academic_year_id' => $year->id]);
+
+        Livewire::actingAs($teacher)
+            ->test(CareerStatusForm::class)
+            ->call('selectStudent', $student->id)
+            ->set('academic_year_id', $year->id)
+            ->set('status', 'further_study')
+            ->set('effective_date', now()->toDateString())
+            ->call('save')
+            ->assertHasErrors(['institution_name' => 'required']);
+    }
+
+    public function test_saving_a_further_study_record_stores_the_institution_name(): void
+    {
+        $teacher = User::factory()->create(['role' => UserRole::Teacher]);
+        $year = AcademicYear::factory()->create();
+        $student = Student::factory()->create(['academic_year_id' => $year->id]);
+
+        Livewire::actingAs($teacher)
+            ->test(CareerStatusForm::class)
+            ->call('selectStudent', $student->id)
+            ->set('academic_year_id', $year->id)
+            ->set('status', 'further_study')
+            ->set('institution_name', 'มหาวิทยาลัยเชียงใหม่')
+            ->set('effective_date', now()->toDateString())
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('career_statuses', [
+            'student_id' => $student->id,
+            'status' => 'further_study',
+            'institution_name' => 'มหาวิทยาลัยเชียงใหม่',
+        ]);
+    }
+
+    public function test_institution_name_suggestions_are_pulled_from_existing_records(): void
+    {
+        $teacher = User::factory()->create(['role' => UserRole::Teacher]);
+        $year = AcademicYear::factory()->create();
+        $otherStudent = Student::factory()->create(['academic_year_id' => $year->id]);
+        $student = Student::factory()->create(['academic_year_id' => $year->id]);
+
+        CareerStatus::factory()->create([
+            'student_id' => $otherStudent->id,
+            'academic_year_id' => $year->id,
+            'status' => 'further_study',
+            'institution_name' => 'มหาวิทยาลัยเชียงใหม่',
+        ]);
+
+        Livewire::actingAs($teacher)
+            ->test(CareerStatusForm::class)
+            ->call('selectStudent', $student->id)
+            ->set('status', 'further_study')
+            ->assertSee('มหาวิทยาลัยเชียงใหม่');
+    }
+
     /**
      * @return array{province: ThaiProvince, district: ThaiDistrict, subdistrict: ThaiSubdistrict}
      */

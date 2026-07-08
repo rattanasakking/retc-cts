@@ -45,6 +45,8 @@ class CareerStatusForm extends Component
 
     public ?int $work_subdistrict_id = null;
 
+    public string $institution_name = '';
+
     public bool $is_related_to_major = false;
 
     public string $notes = '';
@@ -77,7 +79,7 @@ class CareerStatusForm extends Component
     public function clearStudent(): void
     {
         $this->selectedStudentId = null;
-        $this->reset(['status', 'company_name', 'position', 'monthly_salary', 'employment_type', 'work_location', 'work_province_id', 'work_district_id', 'work_subdistrict_id', 'is_related_to_major', 'notes']);
+        $this->reset(['status', 'company_name', 'position', 'monthly_salary', 'employment_type', 'work_location', 'work_province_id', 'work_district_id', 'work_subdistrict_id', 'institution_name', 'is_related_to_major', 'notes']);
         $this->employment_type = 'full_time';
     }
 
@@ -97,6 +99,10 @@ class CareerStatusForm extends Component
         if (! $this->needsLocation()) {
             $this->reset(['work_province_id', 'work_district_id', 'work_subdistrict_id']);
         }
+
+        if (! $this->isFurtherStudy()) {
+            $this->institution_name = '';
+        }
     }
 
     public function updatedWorkProvinceId(): void
@@ -114,9 +120,14 @@ class CareerStatusForm extends Component
         return in_array($this->status, [CareerStatusType::Employed->value, CareerStatusType::Entrepreneur->value], true);
     }
 
+    private function isFurtherStudy(): bool
+    {
+        return $this->status === CareerStatusType::FurtherStudy->value;
+    }
+
     private function needsLocation(): bool
     {
-        return $this->isWorkingStatus() || $this->status === CareerStatusType::FurtherStudy->value;
+        return $this->isWorkingStatus() || $this->isFurtherStudy();
     }
 
     protected function rules(): array
@@ -143,6 +154,10 @@ class CareerStatusForm extends Component
             $rules['work_subdistrict_id'] = ['nullable', 'exists:thai_subdistricts,id'];
         }
 
+        if ($this->isFurtherStudy()) {
+            $rules['institution_name'] = ['required', 'string', 'max:255'];
+        }
+
         return $rules;
     }
 
@@ -151,6 +166,7 @@ class CareerStatusForm extends Component
         return [
             'selectedStudentId.required' => 'กรุณาเลือกนักศึกษา',
             'company_name.required' => 'กรุณากรอกชื่อบริษัท/กิจการ',
+            'institution_name.required' => 'กรุณากรอกชื่อสถานศึกษาต่อ',
         ];
     }
 
@@ -177,6 +193,7 @@ class CareerStatusForm extends Component
                 'work_province_id' => $this->needsLocation() ? ($validated['work_province_id'] ?? null) : null,
                 'work_district_id' => $this->needsLocation() ? ($validated['work_district_id'] ?? null) : null,
                 'work_subdistrict_id' => $this->needsLocation() ? ($validated['work_subdistrict_id'] ?? null) : null,
+                'institution_name' => $this->isFurtherStudy() ? ($validated['institution_name'] ?? null) : null,
                 'is_related_to_major' => $this->isWorkingStatus() ? $this->is_related_to_major : null,
                 'effective_date' => $validated['effective_date'],
                 'source' => 'manual',
@@ -216,7 +233,15 @@ class CareerStatusForm extends Component
             'academicYears' => AcademicYear::orderByDesc('year')->get(),
             'statuses' => CareerStatusType::cases(),
             'isWorkingStatus' => $this->isWorkingStatus(),
+            'isFurtherStudy' => $this->isFurtherStudy(),
             'needsLocation' => $this->needsLocation(),
+            'institutionSuggestions' => $this->isFurtherStudy()
+                ? CareerStatus::whereNotNull('institution_name')
+                    ->distinct()
+                    ->orderBy('institution_name')
+                    ->limit(200)
+                    ->pluck('institution_name')
+                : collect(),
             'provinces' => ThaiProvince::orderBy('name_th')->get(),
             'districts' => $this->work_province_id
                 ? ThaiDistrict::where('province_id', $this->work_province_id)->orderBy('name_th')->get()

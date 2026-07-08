@@ -24,6 +24,7 @@ class CareerStatus extends Model
         'work_province_id',
         'work_district_id',
         'work_subdistrict_id',
+        'institution_name',
         'is_related_to_major',
         'effective_date',
         'source',

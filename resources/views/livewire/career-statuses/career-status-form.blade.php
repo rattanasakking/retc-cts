@@ -142,6 +142,31 @@
                     </div>
                 @endif
 
+                {{-- Further-study-only field: institution name, with autocomplete suggestions
+                     pulled from every institution already recorded in the system so repeat
+                     entries (the common case — most students go to a handful of local schools)
+                     don't need to be retyped. --}}
+                @if ($isFurtherStudy)
+                    <div class="grid grid-cols-1 gap-4 p-4 rounded-box bg-base-200">
+                        <div>
+                            <label class="label pb-1"><span class="label-text text-xs">ชื่อสถานศึกษาต่อ *</span></label>
+                            <input
+                                type="text"
+                                wire:model="institution_name"
+                                list="institution-name-suggestions"
+                                class="input input-bordered w-full"
+                                placeholder="เช่น มหาวิทยาลัยเทคโนโลยีราชมงคล..."
+                            >
+                            <datalist id="institution-name-suggestions">
+                                @foreach ($institutionSuggestions as $suggestion)
+                                    <option value="{{ $suggestion }}"></option>
+                                @endforeach
+                            </datalist>
+                            @error('institution_name') <p class="text-xs text-error mt-1">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Location block: shared between working statuses (employer's province) and
                      further study (institution's province) since both feed the dashboard map. --}}
                 @if ($needsLocation)

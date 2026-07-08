@@ -141,6 +141,7 @@ class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReadin
                 'student_id' => $student->id,
                 'academic_year_id' => $student->academic_year_id,
                 'status' => CareerStatusType::FurtherStudy,
+                'institution_name' => $furtherStudyInstitution !== '' ? $furtherStudyInstitution : null,
                 'is_related_to_major' => $this->cell($cells, self::COL_FURTHER_STUDY_RELEVANCE) === 'ตรง',
                 'effective_date' => now(),
                 'source' => 'imported',
