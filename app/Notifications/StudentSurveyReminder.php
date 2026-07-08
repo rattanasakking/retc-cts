@@ -30,12 +30,15 @@ class StudentSurveyReminder extends Notification implements ShouldQueue
             ->subject('แจ้งเตือน: กรุณากรอกแบบสำรวจภาวะการมีงานทำ')
             ->greeting('เรียน คุณ'.$notifiable->first_name.' '.$notifiable->last_name)
             ->line("ระบบยังไม่ได้รับข้อมูลภาวะการมีงานทำของท่านสำหรับปีการศึกษา {$this->academicYear->year}")
-            ->line('กรุณาติดต่อเจ้าหน้าที่แนะแนวของวิทยาลัยเพื่อกรอกข้อมูล')
+            ->action('แจ้งข้อมูลตอนนี้', route('public.career-status-self-report'))
+            ->line('หรือติดต่อเจ้าหน้าที่แนะแนวของวิทยาลัยเพื่อกรอกข้อมูลแทนก็ได้')
             ->line('ขอบคุณที่ให้ความร่วมมือกับทางวิทยาลัย');
     }
 
     public function toLine(object $notifiable): string
     {
-        return "เรียน คุณ{$notifiable->first_name} ระบบยังไม่ได้รับข้อมูลภาวะการมีงานทำของท่าน ปีการศึกษา {$this->academicYear->year} กรุณาติดต่อเจ้าหน้าที่แนะแนว ขอบคุณครับ/ค่ะ";
+        $url = route('public.career-status-self-report');
+
+        return "เรียน คุณ{$notifiable->first_name} ระบบยังไม่ได้รับข้อมูลภาวะการมีงานทำของท่าน ปีการศึกษา {$this->academicYear->year} กรุณาแจ้งข้อมูลได้ที่ {$url} หรือติดต่อเจ้าหน้าที่แนะแนว ขอบคุณครับ/ค่ะ";
     }
 }
