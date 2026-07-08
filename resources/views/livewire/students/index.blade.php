@@ -88,8 +88,12 @@
                 <tbody>
                     @forelse ($students as $student)
                         <tr wire:key="student-row-{{ $student->id }}">
-                            <td class="font-mono text-sm">{{ $student->student_code }}</td>
-                            <td>{{ $student->prefix }}{{ $student->first_name }} {{ $student->last_name }}</td>
+                            <td class="font-mono text-sm">
+                                <a href="{{ route('students.show', $student) }}" wire:navigate class="link link-hover link-primary">{{ $student->student_code }}</a>
+                            </td>
+                            <td>
+                                <a href="{{ route('students.show', $student) }}" wire:navigate class="link link-hover link-primary">{{ $student->prefix }}{{ $student->first_name }} {{ $student->last_name }}</a>
+                            </td>
                             <td>{{ $student->academicYear?->year }}</td>
                             <td>{{ $student->program ?: '—' }}</td>
                             <td>
@@ -130,10 +134,10 @@
             <div class="card bg-base-100 shadow" wire:key="student-card-{{ $student->id }}">
                 <div class="card-body p-4 gap-2">
                     <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <p class="font-semibold">{{ $student->prefix }}{{ $student->first_name }} {{ $student->last_name }}</p>
+                        <a href="{{ route('students.show', $student) }}" wire:navigate>
+                            <p class="font-semibold link link-hover link-primary">{{ $student->prefix }}{{ $student->first_name }} {{ $student->last_name }}</p>
                             <p class="text-xs text-base-content/60 font-mono">{{ $student->student_code }}</p>
-                        </div>
+                        </a>
                         <span @class([
                             'badge badge-sm shrink-0',
                             'badge-info' => $student->status === 'studying',

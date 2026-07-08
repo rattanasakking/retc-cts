@@ -12,6 +12,7 @@ use App\Livewire\Settings\Backup as SettingsBackup;
 use App\Livewire\Settings\SystemInformation as SettingsSystemInformation;
 use App\Livewire\Settings\Users as SettingsUsers;
 use App\Livewire\Students\Index as StudentsIndex;
+use App\Livewire\Students\Show as StudentsShow;
 use App\Livewire\Students\StudentImporter;
 use App\Livewire\Students\Trash as StudentsTrash;
 use Illuminate\Support\Facades\Route;
@@ -60,6 +61,10 @@ Route::middleware(['auth', 'role:admin,department_head'])->group(function () {
         ]);
     })->name('students.import.template');
 });
+
+Route::get('/students/{student}', StudentsShow::class)
+    ->middleware('auth')
+    ->name('students.show');
 
 Route::middleware(['auth', 'role:admin,executive,department_head'])
     ->get('/reports/export', ExportCenter::class)
