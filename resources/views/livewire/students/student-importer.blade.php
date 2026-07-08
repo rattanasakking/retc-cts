@@ -41,6 +41,12 @@
                     @enderror
                 </div>
 
+                <label class="label cursor-pointer justify-start gap-2 w-fit">
+                    <input type="checkbox" wire:model="updateExisting" class="checkbox checkbox-sm">
+                    <span class="label-text">เติมข้อมูลที่ขาดหายไปให้นักศึกษาที่มีอยู่แล้ว (แทนที่จะข้ามแถวที่รหัสนักศึกษาซ้ำ)</span>
+                </label>
+                <p class="text-xs text-base-content/50 -mt-2">จะเติมเฉพาะช่องที่ยังว่างอยู่เท่านั้น ไม่แก้ไขข้อมูลที่มีอยู่แล้ว</p>
+
                 <button type="submit" class="btn btn-primary" wire:loading.attr="disabled" wire:target="import">
                     <span wire:loading.remove wire:target="import">เริ่มนำเข้าข้อมูล</span>
                     <span wire:loading wire:target="import" class="loading loading-spinner loading-sm"></span>
@@ -93,7 +99,7 @@
                 <progress class="progress progress-primary w-full" value="{{ $percent }}" max="100"></progress>
                 <p class="text-xs text-base-content/60">{{ $processed }} / {{ $active->total_rows }} แถว ({{ $percent }}%)</p>
 
-                <div class="grid grid-cols-3 gap-3 mt-2 text-center">
+                <div class="grid grid-cols-4 gap-3 mt-2 text-center">
                     <div>
                         <p class="text-xl font-bold tabular-nums">{{ number_format($active->total_rows) }}</p>
                         <p class="text-xs text-base-content/60">ทั้งหมด</p>
@@ -101,6 +107,10 @@
                     <div>
                         <p class="text-xl font-bold tabular-nums text-success">{{ number_format($active->imported_rows) }}</p>
                         <p class="text-xs text-base-content/60">สำเร็จ</p>
+                    </div>
+                    <div>
+                        <p class="text-xl font-bold tabular-nums text-info">{{ number_format($active->updated_rows) }}</p>
+                        <p class="text-xs text-base-content/60">อัปเดตข้อมูลเดิม</p>
                     </div>
                     <div>
                         <p class="text-xl font-bold tabular-nums text-error">{{ number_format($active->failed_rows) }}</p>

@@ -18,6 +18,7 @@ class ImportLog extends Model
         'status',
         'total_rows',
         'imported_rows',
+        'updated_rows',
         'failed_rows',
         'errors',
         'started_at',

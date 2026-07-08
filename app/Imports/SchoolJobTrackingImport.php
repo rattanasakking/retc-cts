@@ -71,7 +71,7 @@ class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReadin
 
     private const COL_WORK_RELEVANCE = 24;
 
-    public function __construct(private readonly int $importLogId)
+    public function __construct(private readonly int $importLogId, private readonly bool $updateExisting = false)
     {
     }
 

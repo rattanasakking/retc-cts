@@ -105,6 +105,64 @@ class StudentImportTest extends TestCase
         $this->assertStringContainsString('ซ้ำ', $log->errors[0]['messages'][0]);
     }
 
+    public function test_update_existing_mode_fills_only_currently_empty_fields(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $student = Student::factory()->create([
+            'student_code' => 'UPD-001',
+            'first_name' => 'สมชาย',
+            'last_name' => 'ใจดี',
+            'birth_date' => null,
+            'phone' => null,
+            'email' => 'original@test.com', // already set — must survive the import untouched
+        ]);
+
+        $csv = "student_code,first_name,last_name,birth_date,phone,email,academic_year,status\n".
+            "UPD-001,สมชาย,ใจดี,2007-10-02,0812345678,incoming@test.com,2569,graduated\n";
+
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('updateExisting', true)
+            ->set('file', $this->csv($csv))
+            ->call('import');
+
+        $this->assertDatabaseCount('students', 1); // no new row created
+
+        $student->refresh();
+        $this->assertSame('2007-10-02', $student->birth_date->toDateString());
+        $this->assertSame('0812345678', $student->phone);
+        $this->assertSame('original@test.com', $student->email); // untouched, was already set
+
+        $log = ImportLog::first();
+        $this->assertSame(1, $log->imported_rows);
+        $this->assertSame(1, $log->updated_rows);
+        $this->assertSame(0, $log->failed_rows);
+    }
+
+    public function test_duplicate_student_code_is_still_rejected_when_update_existing_is_off(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        Student::factory()->create(['student_code' => 'UPD-002', 'birth_date' => null]);
+
+        $csv = "student_code,first_name,last_name,birth_date,academic_year,status\n".
+            "UPD-002,สมชาย,ใจดี,2007-10-02,2569,graduated\n";
+
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('updateExisting', false)
+            ->set('file', $this->csv($csv))
+            ->call('import');
+
+        $log = ImportLog::first();
+        $this->assertSame(0, $log->imported_rows);
+        $this->assertSame(0, $log->updated_rows);
+        $this->assertSame(1, $log->failed_rows);
+    }
+
     public function test_duplicate_student_code_within_the_same_file_is_rejected(): void
     {
         Storage::fake('local');

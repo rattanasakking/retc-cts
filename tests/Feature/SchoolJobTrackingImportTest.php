@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Livewire\Students\StudentImporter;
+use App\Models\CareerStatus;
 use App\Models\ImportLog;
 use App\Models\Student;
 use App\Models\User;
@@ -138,6 +139,45 @@ class SchoolJobTrackingImportTest extends TestCase
 
         $this->assertNotNull($student->birth_date);
         $this->assertSame('2007-10-02', $student->birth_date->toDateString());
+    }
+
+    public function test_update_existing_mode_backfills_birth_date_without_duplicating_career_status(): void
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $student = Student::factory()->create([
+            'student_code' => '67-00005',
+            'birth_date' => null,
+        ]);
+        CareerStatus::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $student->academic_year_id,
+            'status' => 'employed',
+            'is_current' => true,
+        ]);
+
+        $csv = $this->reportCsv(
+            'ธีรวัฒน์ ยิ่งกำแหง,,ประกาศนียบัตรวิชาชีพ 3,1459901234462,อุตสาหกรรม,,2569,,67-00005,02/10/2007,,,,,,,,,,,,บริษัท ใหม่ จำกัด,,,,,2569,ปกติ',
+        );
+
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('format', 'school_report')
+            ->set('updateExisting', true)
+            ->set('file', $csv)
+            ->call('import');
+
+        $student->refresh();
+        $this->assertSame('2007-10-02', $student->birth_date->toDateString());
+
+        // Still only the one career_status row from before the re-import —
+        // an update must never create a second "current" record.
+        $this->assertSame(1, CareerStatus::where('student_id', $student->id)->count());
+
+        $log = ImportLog::first();
+        $this->assertSame(1, $log->updated_rows);
     }
 
     public function test_rows_missing_the_student_code_column_are_rejected_and_logged(): void

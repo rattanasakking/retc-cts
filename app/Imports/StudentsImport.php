@@ -18,7 +18,7 @@ class StudentsImport implements OnEachRow, ShouldQueue, WithChunkReading, WithEv
 {
     use ImportsStudentRow;
 
-    public function __construct(private readonly int $importLogId)
+    public function __construct(private readonly int $importLogId, private readonly bool $updateExisting = false)
     {
     }
 

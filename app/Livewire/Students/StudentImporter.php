@@ -24,6 +24,9 @@ class StudentImporter extends Component
     /** 'standard' (this app's own CSV template) or 'school_report' (the school SIS's job-tracking report export, as-is). */
     public string $format = 'standard';
 
+    /** When true, a row matching an existing student_code fills that student's empty fields instead of being rejected as a duplicate. */
+    public bool $updateExisting = false;
+
     public ?int $activeImportLogId = null;
 
     /** Rows to skip before data starts, per format — the school report has 4 title/metadata rows plus its own header row. */
@@ -59,8 +62,8 @@ class StudentImporter extends Component
         ]);
 
         $import = $this->format === 'school_report'
-            ? new SchoolJobTrackingImport($importLog->id)
-            : new StudentsImport($importLog->id);
+            ? new SchoolJobTrackingImport($importLog->id, $this->updateExisting)
+            : new StudentsImport($importLog->id, $this->updateExisting);
 
         Excel::queueImport($import, $storedPath, 'local');
 
