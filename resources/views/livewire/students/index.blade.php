@@ -214,6 +214,12 @@
                     </div>
 
                     <div>
+                        <label class="label pb-1"><span class="label-text text-xs">วันเดือนปีเกิด</span></label>
+                        <x-thai-date-input wire-model="birth_date" class="input input-bordered input-sm w-full" years-back="60" years-forward="0" />
+                        @error('birth_date') <p class="text-xs text-error mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
                         <label class="label pb-1"><span class="label-text text-xs">ปีการศึกษา *</span></label>
                         <select wire:model="academic_year_id" class="select select-bordered select-sm w-full">
                             <option value="">— เลือกปีการศึกษา —</option>

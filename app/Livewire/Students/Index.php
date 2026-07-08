@@ -42,6 +42,8 @@ class Index extends Component
 
     public string $last_name = '';
 
+    public string $birth_date = '';
+
     public ?int $academic_year_id = null;
 
     public string $program = '';
@@ -87,6 +89,7 @@ class Index extends Component
             'prefix' => ['nullable', 'string', 'max:255'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
+            'birth_date' => ['nullable', 'date'],
             'academic_year_id' => ['required', 'exists:academic_years,id'],
             'program' => ['nullable', 'string', 'max:255'],
             'degree_level' => ['nullable', 'string', 'max:255'],
@@ -131,6 +134,7 @@ class Index extends Component
         $this->prefix = (string) $student->prefix;
         $this->first_name = $student->first_name;
         $this->last_name = $student->last_name;
+        $this->birth_date = $student->birth_date?->toDateString() ?? '';
         $this->academic_year_id = $student->academic_year_id;
         $this->program = (string) $student->program;
         $this->degree_level = (string) $student->degree_level;
@@ -150,6 +154,7 @@ class Index extends Component
         $validated = $this->validate();
         $validated['national_id'] = $validated['national_id'] !== '' ? $validated['national_id'] : null;
         $validated['line_user_id'] = $validated['line_user_id'] !== '' ? $validated['line_user_id'] : null;
+        $validated['birth_date'] = $validated['birth_date'] !== '' ? $validated['birth_date'] : null;
 
         if ($this->editingId) {
             Student::findOrFail($this->editingId)->update($validated);
@@ -190,7 +195,7 @@ class Index extends Component
     private function resetForm(): void
     {
         $this->reset([
-            'editingId', 'student_code', 'national_id', 'prefix', 'first_name', 'last_name',
+            'editingId', 'student_code', 'national_id', 'prefix', 'first_name', 'last_name', 'birth_date',
             'academic_year_id', 'program', 'degree_level', 'phone', 'email', 'line_user_id', 'address', 'status',
         ]);
         $this->prefix = 'นาย';

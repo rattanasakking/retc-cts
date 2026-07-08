@@ -18,9 +18,10 @@ trait ImportsStudentRow
 {
     /**
      * @param  array<string, mixed>  $data  student_code, national_id, prefix,
-     *      first_name, last_name, academic_year, program, degree_level,
-     *      phone, email, status — same shape StudentsImport's CSV template
-     *      uses; callers translate their own source format into this shape.
+     *      first_name, last_name, birth_date, academic_year, program,
+     *      degree_level, phone, email, status — same shape StudentsImport's
+     *      CSV template uses; callers translate their own source format
+     *      into this shape. birth_date must already be a Y-m-d string.
      */
     private function validateAndCreateStudent(int $rowNumber, array $data): ?Student
     {
@@ -30,6 +31,7 @@ trait ImportsStudentRow
             'prefix' => ['nullable', 'string', 'max:255'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
+            'birth_date' => ['nullable', 'date'],
             'academic_year' => ['required', 'integer', 'min:2500', 'max:2700'],
             'program' => ['nullable', 'string', 'max:255'],
             'degree_level' => ['nullable', 'string', 'max:255'],
@@ -78,6 +80,7 @@ trait ImportsStudentRow
                 'prefix' => $data['prefix'] ?? null,
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
+                'birth_date' => ($data['birth_date'] ?? '') !== '' ? $data['birth_date'] : null,
                 'program' => $data['program'] ?? null,
                 'degree_level' => $data['degree_level'] ?? null,
                 'phone' => $data['phone'] ?? null,

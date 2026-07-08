@@ -117,6 +117,29 @@ class SchoolJobTrackingImportTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_birth_date_column_is_parsed_from_dd_mm_yyyy_gregorian_into_a_stored_date(): void
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $csv = $this->reportCsv(
+            'ธีรวัฒน์ ยิ่งกำแหง,,ประกาศนียบัตรวิชาชีพ 3,1459901234462,อุตสาหกรรม,,2569,,67-00004,02/10/2007,,,,,,,,,,,,,,,,,2569,ปกติ',
+        );
+
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('format', 'school_report')
+            ->set('file', $csv)
+            ->call('import');
+
+        $student = Student::where('student_code', '67-00004')->first();
+
+        $this->assertNotNull($student->birth_date);
+        $this->assertSame('2007-10-02', $student->birth_date->toDateString());
+    }
+
     public function test_rows_missing_the_student_code_column_are_rejected_and_logged(): void
     {
         Storage::fake('local');

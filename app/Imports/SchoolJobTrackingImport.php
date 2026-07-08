@@ -26,10 +26,11 @@ use Maatwebsite\Excel\Row;
  *
  * Column positions (0-indexed) as exported by this specific report:
  *   0 ชื่อ นามสกุล, 2 ระดับชั้น, 3 รหัสบัตรประชาชน, 6 ปีที่จบ,
- *   8 เลขรหัสนักเรียน, 10 อีเมล, 11 โทรศัพท์, 13 สาขาวิชา,
- *   17 ชื่อสถานศึกษาเรียนต่อ, 18 สถานะเรียนตรงสาย ไม่ตรงสาย,
- *   20 สาขาวิชาที่เรียนต่อ, 21 ชื่อสถานที่ทำงาน, 22 ตำแหน่งงาน,
- *   23 เงินเดือน, 24 ทำงานตรงสาย ไม่ตรงสาย
+ *   8 เลขรหัสนักเรียน, 9 วันเกิด (DD/MM/YYYY, ค.ศ.), 10 อีเมล,
+ *   11 โทรศัพท์, 13 สาขาวิชา, 17 ชื่อสถานศึกษาเรียนต่อ,
+ *   18 สถานะเรียนตรงสาย ไม่ตรงสาย, 20 สาขาวิชาที่เรียนต่อ,
+ *   21 ชื่อสถานที่ทำงาน, 22 ตำแหน่งงาน, 23 เงินเดือน,
+ *   24 ทำงานตรงสาย ไม่ตรงสาย
  */
 class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReading, WithEvents
 {
@@ -47,6 +48,8 @@ class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReadin
     private const COL_GRADUATED_YEAR = 6;
 
     private const COL_STUDENT_CODE = 8;
+
+    private const COL_BIRTH_DATE = 9;
 
     private const COL_EMAIL = 10;
 
@@ -92,6 +95,7 @@ class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReadin
             'national_id' => $this->cell($cells, self::COL_NATIONAL_ID),
             'first_name' => $firstName,
             'last_name' => $lastName,
+            'birth_date' => $this->parseThaiReportDate($this->cell($cells, self::COL_BIRTH_DATE)),
             'academic_year' => $this->cell($cells, self::COL_GRADUATED_YEAR),
             'program' => $this->cell($cells, self::COL_PROGRAM) ?: null,
             'degree_level' => $this->cell($cells, self::COL_DEGREE_LEVEL) ?: null,
@@ -154,6 +158,26 @@ class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReadin
     private function cell(array $cells, int $index): string
     {
         return trim((string) ($cells[$index] ?? ''));
+    }
+
+    /**
+     * The report's date columns are DD/MM/YYYY in ค.ศ. (Gregorian/AD), not
+     * พ.ศ. — despite everything else in this report being Thai-formatted,
+     * the school's SIS exports this one column as a plain AD date. Convert
+     * to Y-m-d for storage; anything unparseable is dropped rather than
+     * failing the whole row over a non-critical field.
+     */
+    private function parseThaiReportDate(string $value): ?string
+    {
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return \Carbon\Carbon::createFromFormat('d/m/Y', $value)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

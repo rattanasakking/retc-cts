@@ -72,6 +72,27 @@ class StudentManagementTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_set_a_students_birth_date(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $year = AcademicYear::factory()->create();
+
+        Livewire::actingAs($admin)
+            ->test(Index::class)
+            ->call('openCreateModal')
+            ->set('student_code', 'NEW-002')
+            ->set('first_name', 'ทดสอบ')
+            ->set('last_name', 'วันเกิด')
+            ->set('academic_year_id', $year->id)
+            ->set('birth_date', '2007-10-02')
+            ->set('status', 'studying')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $student = Student::where('student_code', 'NEW-002')->first();
+        $this->assertSame('2007-10-02', $student->birth_date->toDateString());
+    }
+
     public function test_create_requires_unique_student_code(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin]);

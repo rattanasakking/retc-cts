@@ -164,6 +164,7 @@
                                         'manual' => 'บันทึกโดยเจ้าหน้าที่',
                                         'imported' => 'นำเข้าจากไฟล์ CSV',
                                         'survey' => 'แบบสำรวจ',
+                                        'self_report' => 'นักศึกษาแจ้งด้วยตนเอง',
                                         default => $careerStatus->source,
                                     } }}
                                 </span>

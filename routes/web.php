@@ -5,6 +5,7 @@ use App\Livewire\CareerStatuses\CareerStatusForm;
 use App\Livewire\Dashboard;
 use App\Livewire\Notifications\NotificationLogs;
 use App\Livewire\Notifications\SendReminders;
+use App\Livewire\Public\CareerStatusSelfReport;
 use App\Livewire\Public\StudentSearch;
 use App\Livewire\Reports\ExportCenter;
 use App\Livewire\Settings\AcademicYears as SettingsAcademicYears;
@@ -24,6 +25,10 @@ Route::get('/', function () {
 Route::get('/search', StudentSearch::class)
     ->middleware('throttle:30,1')
     ->name('public.student-search');
+
+Route::get('/report-status', CareerStatusSelfReport::class)
+    ->middleware('throttle:20,1')
+    ->name('public.career-status-self-report');
 
 Route::get('/dashboard', Dashboard::class)
     ->middleware('auth')
@@ -47,11 +52,11 @@ Route::middleware(['auth', 'role:admin,department_head'])->group(function () {
 
     Route::get('/students/import/template', function () {
         $csv = "\xEF\xBB\xBF".implode(',', [
-            'student_code', 'national_id', 'prefix', 'first_name', 'last_name',
+            'student_code', 'national_id', 'prefix', 'first_name', 'last_name', 'birth_date',
             'academic_year', 'program', 'degree_level', 'phone', 'email', 'status',
         ])."\n";
         $csv .= implode(',', [
-            '67-00001', '1234567890123', 'นาย', 'สมชาย', 'ใจดี',
+            '67-00001', '1234567890123', 'นาย', 'สมชาย', 'ใจดี', '2007-10-02',
             '2569', 'เทคโนโลยีสารสนเทศ', 'ปวส.', '0812345678', 'somchai@example.com', 'graduated',
         ])."\n";
 

@@ -23,6 +23,7 @@ class Student extends Model
         'prefix',
         'first_name',
         'last_name',
+        'birth_date',
         'program',
         'degree_level',
         'phone',
@@ -36,6 +37,7 @@ class Student extends Model
     protected function casts(): array
     {
         return [
+            'birth_date' => 'date',
             'graduated_at' => 'date',
         ];
     }

@@ -53,7 +53,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                 </svg>
                 @if ($format === 'standard')
-                    <span>คอลัมน์ที่ต้องมี: <code class="text-xs">student_code, first_name, last_name, academic_year</code> — คอลัมน์เสริม: <code class="text-xs">national_id, prefix, program, degree_level, phone, email, status</code>. ระบบจะข้ามแถวที่ข้อมูลซ้ำกับที่มีอยู่แล้วโดยอัตโนมัติ พร้อมบันทึกเหตุผลไว้ในประวัติการนำเข้า</span>
+                    <span>คอลัมน์ที่ต้องมี: <code class="text-xs">student_code, first_name, last_name, academic_year</code> — คอลัมน์เสริม: <code class="text-xs">national_id, prefix, birth_date, program, degree_level, phone, email, status</code> (birth_date รูปแบบ ค.ศ. เช่น 2007-10-02 ใช้สำหรับให้นักศึกษายืนยันตัวตนในแบบฟอร์มสาธารณะ). ระบบจะข้ามแถวที่ข้อมูลซ้ำกับที่มีอยู่แล้วโดยอัตโนมัติ พร้อมบันทึกเหตุผลไว้ในประวัติการนำเข้า</span>
                 @else
                     <span>อัปโหลดไฟล์ CSV ที่ส่งออกจากระบบของโรงเรียน (รายงานติดตามภาวะการมีงานทำและศึกษาต่อ) ได้โดยตรง ไม่ต้องแก้ไขคอลัมน์เอง — ระบบจะข้ามหัวรายงาน 5 แถวแรกให้อัตโนมัติ พร้อมบันทึกสถานะการทำงาน/ศึกษาต่อของนักศึกษาแต่ละคนจากคอลัมน์ "ชื่อสถานที่ทำงาน" และ "ชื่อสถานศึกษาเรียนต่อ" ในไฟล์</span>
                 @endif
