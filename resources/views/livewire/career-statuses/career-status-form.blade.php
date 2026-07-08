@@ -73,7 +73,7 @@
 
                     <div>
                         <label class="label pb-1"><span class="label-text text-xs">วันที่มีผล *</span></label>
-                        <input type="date" wire:model="effective_date" class="input input-bordered w-full">
+                        <x-thai-date-input wire-model="effective_date" />
                         @error('effective_date') <p class="text-xs text-error mt-1">{{ $message }}</p> @enderror
                     </div>
 
@@ -130,7 +130,7 @@
 
                         <div>
                             <label class="label pb-1"><span class="label-text text-xs">สถานที่ทำงาน</span></label>
-                            <input type="text" wire:model="work_location" class="input input-bordered w-full">
+                            <input type="text" wire:model="work_location" class="input input-bordered w-full" placeholder="ชื่ออาคาร/ที่อยู่โดยละเอียด">
                         </div>
 
                         <div class="sm:col-span-2">
@@ -138,6 +138,48 @@
                                 <input type="checkbox" wire:model="is_related_to_major" class="checkbox checkbox-sm">
                                 <span class="label-text">งานที่ทำตรงกับสาขาที่เรียน</span>
                             </label>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Location block: shared between working statuses (employer's province) and
+                     further study (institution's province) since both feed the dashboard map. --}}
+                @if ($needsLocation)
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-box bg-base-200">
+                        <div class="sm:col-span-3">
+                            <p class="text-xs font-semibold text-base-content/60">
+                                {{ $status === 'further_study' ? 'ที่ตั้งสถานศึกษาต่อ' : 'ที่ตั้งสถานที่ทำงาน' }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="label pb-1"><span class="label-text text-xs">จังหวัด</span></label>
+                            <select wire:model.live="work_province_id" class="select select-bordered w-full">
+                                <option value="">— เลือกจังหวัด —</option>
+                                @foreach ($provinces as $province)
+                                    <option value="{{ $province->id }}">{{ $province->name_th }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label pb-1"><span class="label-text text-xs">อำเภอ/เขต</span></label>
+                            <select wire:model.live="work_district_id" class="select select-bordered w-full" @disabled(! $work_province_id)>
+                                <option value="">— เลือกอำเภอ/เขต —</option>
+                                @foreach ($districts as $district)
+                                    <option value="{{ $district->id }}">{{ $district->name_th }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label pb-1"><span class="label-text text-xs">ตำบล/แขวง</span></label>
+                            <select wire:model="work_subdistrict_id" class="select select-bordered w-full" @disabled(! $work_district_id)>
+                                <option value="">— เลือกตำบล/แขวง —</option>
+                                @foreach ($subdistricts as $subdistrict)
+                                    <option value="{{ $subdistrict->id }}">{{ $subdistrict->name_th }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                 @endif

@@ -7,6 +7,7 @@ use App\Livewire\Dashboard;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
 use App\Models\Student;
+use App\Models\ThaiProvince;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -138,12 +139,14 @@ class DashboardTest extends TestCase
         $year = AcademicYear::factory()->create(['is_active' => true]);
         $students = Student::factory()->graduated()->count(3)->create(['academic_year_id' => $year->id]);
 
+        $province = ThaiProvince::create(['id' => 20, 'name_th' => 'ชลบุรี', 'lat' => 13.36, 'lng' => 100.98]);
+
         foreach ($students as $student) {
             CareerStatus::factory()->create([
                 'student_id' => $student->id,
                 'academic_year_id' => $year->id,
                 'status' => CareerStatusType::Employed,
-                'work_location' => 'ชลบุรี',
+                'work_province_id' => $province->id,
                 'company_name' => 'บริษัท ทดสอบ จำกัด',
             ]);
         }
@@ -154,6 +157,12 @@ class DashboardTest extends TestCase
 
         $this->assertSame('ชลบุรี', $component->viewData('metrics')['top_province']);
         $this->assertSame('บริษัท ทดสอบ จำกัด', $component->viewData('metrics')['top_company']);
+
+        $provinceMap = $component->viewData('provinceMap');
+        $this->assertCount(1, $provinceMap);
+        $this->assertSame('ชลบุรี', $provinceMap[0]['name']);
+        $this->assertSame(3, $provinceMap[0]['employed']);
+        $this->assertSame(0, $provinceMap[0]['further_study']);
     }
 
     public function test_related_to_major_rate_is_computed_from_working_students_only(): void

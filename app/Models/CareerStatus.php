@@ -21,6 +21,9 @@ class CareerStatus extends Model
         'monthly_salary',
         'employment_type',
         'work_location',
+        'work_province_id',
+        'work_district_id',
+        'work_subdistrict_id',
         'is_related_to_major',
         'effective_date',
         'source',
@@ -53,6 +56,21 @@ class CareerStatus extends Model
     public function verifiedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function workProvince(): BelongsTo
+    {
+        return $this->belongsTo(ThaiProvince::class, 'work_province_id');
+    }
+
+    public function workDistrict(): BelongsTo
+    {
+        return $this->belongsTo(ThaiDistrict::class, 'work_district_id');
+    }
+
+    public function workSubdistrict(): BelongsTo
+    {
+        return $this->belongsTo(ThaiSubdistrict::class, 'work_subdistrict_id');
     }
 
     public function auditModule(): string

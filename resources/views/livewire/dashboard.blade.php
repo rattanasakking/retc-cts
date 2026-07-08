@@ -152,6 +152,23 @@
                 </div>
             </div>
         </div>
+
+        <div class="card bg-base-100 shadow lg:col-span-2">
+            <div class="card-body">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <h2 class="card-title text-base">แผนที่การกระจายตัวตามจังหวัด</h2>
+                    <div class="flex items-center gap-3 text-xs text-base-content/60">
+                        <span class="inline-flex items-center gap-1"><span class="h-2.5 w-2.5 rounded-full inline-block" style="background:#2563a8"></span>มีงานทำเป็นส่วนใหญ่</span>
+                        <span class="inline-flex items-center gap-1"><span class="h-2.5 w-2.5 rounded-full inline-block" style="background:#4fb3a0"></span>ศึกษาต่อเป็นส่วนใหญ่</span>
+                    </div>
+                </div>
+                @if (empty($provinceMap))
+                    <p class="text-sm text-base-content/50 mt-4">ยังไม่มีข้อมูลจังหวัดที่ทำงาน/ศึกษาต่อสำหรับตัวกรองนี้</p>
+                @else
+                    <div wire:key="map-{{ $filterKey }}" wire:ignore x-data="provinceMap(@js($provinceMap))" x-init="init($el)" class="mt-2 w-full rounded-box overflow-hidden" style="height: 420px"></div>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
 
@@ -254,6 +271,43 @@
             });
         },
         destroy() { this.chart?.destroy(); },
+    }));
+
+    Alpine.data('provinceMap', (payload) => ({
+        map: null,
+
+        init(el) {
+            this.map = L.map(el, { scrollWheelZoom: false }).setView([13.7563, 100.5018], 6);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 18,
+            }).addTo(this.map);
+
+            const maxTotal = Math.max(...payload.map((p) => p.total));
+            const bounds = [];
+
+            payload.forEach((p) => {
+                const radius = 8 + (p.total / maxTotal) * 22;
+                const color = p.employed >= p.further_study ? '#2563a8' : '#4fb3a0';
+
+                L.circleMarker([p.lat, p.lng], {
+                    radius,
+                    color,
+                    weight: 1,
+                    fillColor: color,
+                    fillOpacity: 0.55,
+                })
+                    .addTo(this.map)
+                    .bindPopup(`<strong>${p.name}</strong><br>มีงานทำ: ${p.employed} คน<br>ศึกษาต่อ: ${p.further_study} คน`);
+
+                bounds.push([p.lat, p.lng]);
+            });
+
+            if (bounds.length) this.map.fitBounds(bounds, { padding: [24, 24], maxZoom: 8 });
+        },
+
+        destroy() { this.map?.remove(); },
     }));
 </script>
 @endscript

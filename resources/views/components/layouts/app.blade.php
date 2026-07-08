@@ -58,7 +58,7 @@
                     </div>
 
                     {{-- Nav --}}
-                    <nav class="flex-1 overflow-y-auto px-2 py-4 space-y-6">
+                    <nav class="sidebar-nav-scroll flex-1 overflow-y-auto px-2 py-4 space-y-6">
                         <div>
                             <p x-show="!collapsed" class="px-3 mb-1 text-xs font-semibold uppercase tracking-wider text-neutral-content/40">ภาพรวม</p>
                             <ul class="menu w-full p-0 gap-1">

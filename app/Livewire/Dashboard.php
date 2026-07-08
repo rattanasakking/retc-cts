@@ -6,6 +6,7 @@ use App\Enums\CareerStatusType;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
 use App\Models\Student;
+use App\Models\ThaiProvince;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -61,6 +62,7 @@ class Dashboard extends Component
         $relatedYes = 0;
         $relatedNo = 0;
         $departmentRows = collect();
+        $provinceRows = collect();
 
         if ($year) {
             $graduates = $this->applyStudentFilters(
@@ -81,12 +83,18 @@ class Dashboard extends Component
             $working = $careerBase()->whereIn('status', ['employed', 'entrepreneur']);
             $avgSalary = (clone $working)->whereNotNull('monthly_salary')->avg('monthly_salary');
 
-            $topProvince = (clone $working)
-                ->whereNotNull('work_location')
-                ->selectRaw('work_location, count(*) as total')
-                ->groupBy('work_location')
+            $provinceRows = $careerBase()
+                ->join('thai_provinces', 'thai_provinces.id', '=', 'career_statuses.work_province_id')
+                ->whereIn('career_statuses.status', ['employed', 'entrepreneur', 'further_study'])
+                ->selectRaw("thai_provinces.id as province_id, thai_provinces.name_th as name, thai_provinces.lat as lat, thai_provinces.lng as lng,
+                    SUM(CASE WHEN career_statuses.status IN ('employed','entrepreneur') THEN 1 ELSE 0 END) as employed,
+                    SUM(CASE WHEN career_statuses.status = 'further_study' THEN 1 ELSE 0 END) as further_study,
+                    COUNT(*) as total")
+                ->groupBy('thai_provinces.id', 'thai_provinces.name_th', 'thai_provinces.lat', 'thai_provinces.lng')
                 ->orderByDesc('total')
-                ->value('work_location');
+                ->get();
+
+            $topProvince = $provinceRows->first()->name ?? null;
 
             $topCompany = (clone $working)
                 ->whereNotNull('company_name')
@@ -195,6 +203,18 @@ class Dashboard extends Component
                 'response_rate' => $trendResponseRate,
                 'employed_rate' => $trendEmployedRate,
             ],
+            'provinceMap' => $provinceRows
+                ->filter(fn ($row) => $row->lat !== null && $row->lng !== null)
+                ->map(fn ($row) => [
+                    'name' => $row->name,
+                    'lat' => (float) $row->lat,
+                    'lng' => (float) $row->lng,
+                    'employed' => (int) $row->employed,
+                    'further_study' => (int) $row->further_study,
+                    'total' => (int) $row->total,
+                ])
+                ->values()
+                ->all(),
         ]);
     }
 }

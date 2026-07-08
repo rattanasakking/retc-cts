@@ -7,6 +7,9 @@ use App\Enums\UserRole;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
 use App\Models\Student;
+use App\Models\ThaiDistrict;
+use App\Models\ThaiProvince;
+use App\Models\ThaiSubdistrict;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -35,6 +38,12 @@ class CareerStatusForm extends Component
     public string $employment_type = 'full_time';
 
     public string $work_location = '';
+
+    public ?int $work_province_id = null;
+
+    public ?int $work_district_id = null;
+
+    public ?int $work_subdistrict_id = null;
 
     public bool $is_related_to_major = false;
 
@@ -68,7 +77,7 @@ class CareerStatusForm extends Component
     public function clearStudent(): void
     {
         $this->selectedStudentId = null;
-        $this->reset(['status', 'company_name', 'position', 'monthly_salary', 'employment_type', 'work_location', 'is_related_to_major', 'notes']);
+        $this->reset(['status', 'company_name', 'position', 'monthly_salary', 'employment_type', 'work_location', 'work_province_id', 'work_district_id', 'work_subdistrict_id', 'is_related_to_major', 'notes']);
         $this->employment_type = 'full_time';
     }
 
@@ -80,11 +89,34 @@ class CareerStatusForm extends Component
             $this->reset(['company_name', 'position', 'monthly_salary', 'work_location']);
             $this->is_related_to_major = false;
         }
+
+        // The location fields are shared between "working" and "further study"
+        // (province/district of the employer or the institution), but neither
+        // applies to unemployed/military/other — clear it so stale geo data
+        // from a previous status never gets submitted for an unrelated one.
+        if (! $this->needsLocation()) {
+            $this->reset(['work_province_id', 'work_district_id', 'work_subdistrict_id']);
+        }
+    }
+
+    public function updatedWorkProvinceId(): void
+    {
+        $this->reset(['work_district_id', 'work_subdistrict_id']);
+    }
+
+    public function updatedWorkDistrictId(): void
+    {
+        $this->work_subdistrict_id = null;
     }
 
     private function isWorkingStatus(): bool
     {
         return in_array($this->status, [CareerStatusType::Employed->value, CareerStatusType::Entrepreneur->value], true);
+    }
+
+    private function needsLocation(): bool
+    {
+        return $this->isWorkingStatus() || $this->status === CareerStatusType::FurtherStudy->value;
     }
 
     protected function rules(): array
@@ -103,6 +135,12 @@ class CareerStatusForm extends Component
             $rules['monthly_salary'] = ['nullable', 'numeric', 'min:0', 'max:9999999.99'];
             $rules['employment_type'] = ['required', 'in:full_time,part_time,contract'];
             $rules['work_location'] = ['nullable', 'string', 'max:255'];
+        }
+
+        if ($this->needsLocation()) {
+            $rules['work_province_id'] = ['nullable', 'exists:thai_provinces,id'];
+            $rules['work_district_id'] = ['nullable', 'exists:thai_districts,id'];
+            $rules['work_subdistrict_id'] = ['nullable', 'exists:thai_subdistricts,id'];
         }
 
         return $rules;
@@ -136,6 +174,9 @@ class CareerStatusForm extends Component
                 'monthly_salary' => ($validated['monthly_salary'] ?? '') !== '' ? $validated['monthly_salary'] : null,
                 'employment_type' => $this->isWorkingStatus() ? $validated['employment_type'] : null,
                 'work_location' => $validated['work_location'] ?? null,
+                'work_province_id' => $this->needsLocation() ? ($validated['work_province_id'] ?? null) : null,
+                'work_district_id' => $this->needsLocation() ? ($validated['work_district_id'] ?? null) : null,
+                'work_subdistrict_id' => $this->needsLocation() ? ($validated['work_subdistrict_id'] ?? null) : null,
                 'is_related_to_major' => $this->isWorkingStatus() ? $this->is_related_to_major : null,
                 'effective_date' => $validated['effective_date'],
                 'source' => 'manual',
@@ -147,7 +188,7 @@ class CareerStatusForm extends Component
 
         session()->flash('success', 'บันทึกภาวะการมีงานทำเรียบร้อยแล้ว');
 
-        $this->reset(['studentSearch', 'selectedStudentId', 'status', 'company_name', 'position', 'monthly_salary', 'work_location', 'is_related_to_major', 'notes']);
+        $this->reset(['studentSearch', 'selectedStudentId', 'status', 'company_name', 'position', 'monthly_salary', 'work_location', 'work_province_id', 'work_district_id', 'work_subdistrict_id', 'is_related_to_major', 'notes']);
         $this->employment_type = 'full_time';
         $this->effective_date = now()->toDateString();
     }
@@ -175,6 +216,14 @@ class CareerStatusForm extends Component
             'academicYears' => AcademicYear::orderByDesc('year')->get(),
             'statuses' => CareerStatusType::cases(),
             'isWorkingStatus' => $this->isWorkingStatus(),
+            'needsLocation' => $this->needsLocation(),
+            'provinces' => ThaiProvince::orderBy('name_th')->get(),
+            'districts' => $this->work_province_id
+                ? ThaiDistrict::where('province_id', $this->work_province_id)->orderBy('name_th')->get()
+                : collect(),
+            'subdistricts' => $this->work_district_id
+                ? ThaiSubdistrict::where('district_id', $this->work_district_id)->orderBy('name_th')->get()
+                : collect(),
         ]);
     }
 }

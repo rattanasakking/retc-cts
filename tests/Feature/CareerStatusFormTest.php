@@ -7,6 +7,9 @@ use App\Livewire\CareerStatuses\CareerStatusForm;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
 use App\Models\Student;
+use App\Models\ThaiDistrict;
+use App\Models\ThaiProvince;
+use App\Models\ThaiSubdistrict;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -179,6 +182,88 @@ class CareerStatusFormTest extends TestCase
         $this->assertFalse($old->fresh()->is_current);
         $this->assertSame(2, CareerStatus::where('student_id', $student->id)->count());
         $this->assertSame(1, CareerStatus::where('student_id', $student->id)->where('is_current', true)->count());
+    }
+
+    /**
+     * @return array{province: ThaiProvince, district: ThaiDistrict, subdistrict: ThaiSubdistrict}
+     */
+    private function seedGeography(): array
+    {
+        $province = ThaiProvince::create(['id' => 50, 'name_th' => 'เชียงใหม่', 'lat' => 18.79, 'lng' => 98.98]);
+        $district = ThaiDistrict::create(['id' => 5001, 'name_th' => 'เมืองเชียงใหม่', 'province_id' => $province->id]);
+        $subdistrict = ThaiSubdistrict::create(['id' => 500101, 'name_th' => 'ศรีภูมิ', 'district_id' => $district->id]);
+
+        return compact('province', 'district', 'subdistrict');
+    }
+
+    public function test_location_fields_appear_for_working_and_further_study_status_but_not_others(): void
+    {
+        $teacher = User::factory()->create(['role' => UserRole::Teacher]);
+        $year = AcademicYear::factory()->create();
+        $student = Student::factory()->create(['academic_year_id' => $year->id]);
+
+        $component = Livewire::actingAs($teacher)
+            ->test(CareerStatusForm::class)
+            ->call('selectStudent', $student->id);
+
+        $component->assertDontSee('จังหวัด');
+
+        $component->set('status', 'employed')->assertSee('จังหวัด');
+        $component->set('status', 'further_study')->assertSee('จังหวัด');
+        $component->set('status', 'unemployed')->assertDontSee('จังหวัด');
+    }
+
+    public function test_changing_province_resets_the_previously_selected_district_and_subdistrict(): void
+    {
+        ['province' => $province, 'district' => $district, 'subdistrict' => $subdistrict] = $this->seedGeography();
+        $otherProvince = ThaiProvince::create(['id' => 10, 'name_th' => 'นนทบุรี']);
+
+        $teacher = User::factory()->create(['role' => UserRole::Teacher]);
+        $year = AcademicYear::factory()->create();
+        $student = Student::factory()->create(['academic_year_id' => $year->id]);
+
+        $component = Livewire::actingAs($teacher)
+            ->test(CareerStatusForm::class)
+            ->call('selectStudent', $student->id)
+            ->set('status', 'employed')
+            ->set('work_province_id', $province->id)
+            ->set('work_district_id', $district->id)
+            ->set('work_subdistrict_id', $subdistrict->id);
+
+        $component->set('work_province_id', $otherProvince->id);
+
+        $this->assertNull($component->get('work_district_id'));
+        $this->assertNull($component->get('work_subdistrict_id'));
+    }
+
+    public function test_saving_records_the_selected_work_location(): void
+    {
+        ['province' => $province, 'district' => $district, 'subdistrict' => $subdistrict] = $this->seedGeography();
+
+        $teacher = User::factory()->create(['role' => UserRole::Teacher]);
+        $year = AcademicYear::factory()->create();
+        $student = Student::factory()->create(['academic_year_id' => $year->id]);
+
+        Livewire::actingAs($teacher)
+            ->test(CareerStatusForm::class)
+            ->call('selectStudent', $student->id)
+            ->set('academic_year_id', $year->id)
+            ->set('status', 'employed')
+            ->set('company_name', 'บริษัท ทดสอบ จำกัด')
+            ->set('employment_type', 'full_time')
+            ->set('work_province_id', $province->id)
+            ->set('work_district_id', $district->id)
+            ->set('work_subdistrict_id', $subdistrict->id)
+            ->set('effective_date', now()->toDateString())
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('career_statuses', [
+            'student_id' => $student->id,
+            'work_province_id' => $province->id,
+            'work_district_id' => $district->id,
+            'work_subdistrict_id' => $subdistrict->id,
+        ]);
     }
 
     public function test_teacher_cannot_save_without_selecting_a_student(): void
