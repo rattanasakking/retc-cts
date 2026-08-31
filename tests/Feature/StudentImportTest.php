@@ -82,6 +82,37 @@ class StudentImportTest extends TestCase
         $this->assertNotEmpty($log->errors);
     }
 
+    public function test_rows_with_nothing_left_to_update_are_counted_as_skipped(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $csv = "student_code,first_name,last_name,academic_year,status\n".
+            "67-00030,สมชาย,ใจดี,2569,graduated\n";
+
+        // นำเข้าไฟล์เดิมซ้ำในโหมดอัปเดต — ไม่มีอะไรให้เติมแล้ว
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('updateExisting', true)
+            ->set('file', $this->csv($csv))
+            ->call('import');
+
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('updateExisting', true)
+            ->set('file', $this->csv($csv))
+            ->call('import');
+
+        $second = ImportLog::orderByDesc('id')->first();
+
+        $this->assertSame(1, $second->total_rows);
+        $this->assertSame(0, $second->imported_rows);
+        $this->assertSame(0, $second->failed_rows);
+        $this->assertSame(1, $second->skipped_rows); // ไม่หายไปเฉยๆ อีกต่อไป
+        $this->assertDatabaseCount('students', 1);
+    }
+
     public function test_validation_failures_are_recorded_in_thai(): void
     {
         Storage::fake('local');

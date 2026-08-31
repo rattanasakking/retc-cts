@@ -92,14 +92,14 @@
                 </div>
 
                 @php
-                    $processed = $active->imported_rows + $active->failed_rows;
+                    $processed = $active->imported_rows + $active->skipped_rows + $active->failed_rows;
                     $percent = $active->total_rows > 0 ? min(100, round($processed / $active->total_rows * 100)) : 0;
                 @endphp
 
                 <progress class="progress progress-primary w-full" value="{{ $percent }}" max="100"></progress>
                 <p class="text-xs text-base-content/60">{{ $processed }} / {{ $active->total_rows }} แถว ({{ $percent }}%)</p>
 
-                <div class="grid grid-cols-4 gap-3 mt-2 text-center">
+                <div class="grid grid-cols-3 sm:grid-cols-5 gap-3 mt-2 text-center">
                     <div>
                         <p class="text-xl font-bold tabular-nums">{{ number_format($active->total_rows) }}</p>
                         <p class="text-xs text-base-content/60">ทั้งหมด</p>
@@ -111,6 +111,10 @@
                     <div>
                         <p class="text-xl font-bold tabular-nums text-info">{{ number_format($active->updated_rows) }}</p>
                         <p class="text-xs text-base-content/60">อัปเดตข้อมูลเดิม</p>
+                    </div>
+                    <div>
+                        <p class="text-xl font-bold tabular-nums text-base-content/50">{{ number_format($active->skipped_rows) }}</p>
+                        <p class="text-xs text-base-content/60">ข้าม (มีอยู่แล้ว)</p>
                     </div>
                     <div>
                         <p class="text-xl font-bold tabular-nums text-error">{{ number_format($active->failed_rows) }}</p>
@@ -144,6 +148,7 @@
                             <th>สถานะ</th>
                             <th class="text-right">ทั้งหมด</th>
                             <th class="text-right">สำเร็จ</th>
+                            <th class="text-right">ข้าม</th>
                             <th class="text-right">ล้มเหลว</th>
                             <th></th>
                         </tr>
@@ -152,7 +157,7 @@
                         @forelse ($this->recentImports as $log)
                             <tr>
                                 <td class="max-w-[200px] truncate">{{ $log->file_name }}</td>
-                                <td class="whitespace-nowrap">{{ $log->created_at->format('d/m/Y H:i') }}</td>
+                                <td class="whitespace-nowrap">{{ $log->created_at->format('d/m/').($log->created_at->format('Y') + 543) }} {{ $log->created_at->format('H:i') }}</td>
                                 <td>
                                     <span @class([
                                         'badge badge-sm',
@@ -172,6 +177,7 @@
                                 </td>
                                 <td class="text-right tabular-nums">{{ number_format($log->total_rows) }}</td>
                                 <td class="text-right tabular-nums text-success">{{ number_format($log->imported_rows) }}</td>
+                                <td class="text-right tabular-nums text-base-content/50" title="แถวที่มีนักศึกษาคนนี้อยู่แล้วและไม่มีอะไรต้องเติม">{{ number_format($log->skipped_rows) }}</td>
                                 <td class="text-right tabular-nums text-error">{{ number_format($log->failed_rows) }}</td>
                                 <td class="text-right">
                                     @if ($log->errors && count($log->errors) > 0)
@@ -181,7 +187,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-base-content/60 py-6">ยังไม่มีประวัติการนำเข้า</td>
+                                <td colspan="8" class="text-center text-base-content/60 py-6">ยังไม่มีประวัติการนำเข้า</td>
                             </tr>
                         @endforelse
                     </tbody>

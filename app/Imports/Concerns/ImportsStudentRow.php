@@ -178,7 +178,14 @@ trait ImportsStudentRow
             }
         }
 
+        // Nothing left to fill in — the row is neither an import nor a
+        // failure, so it needs a counter of its own. Without one these rows
+        // vanish from the log entirely and a re-import of an already-complete
+        // file reads as "1,466 rows, 0 imported, 0 failed", which looks like
+        // the import silently lost every row.
         if ($changes === []) {
+            ImportLog::whereKey($this->importLogId)->increment('skipped_rows');
+
             return;
         }
 

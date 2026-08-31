@@ -65,7 +65,13 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Asia/Bangkok, not Laravel's default UTC: every timestamp in this app is
+    // read by staff in Thailand ("นำเข้าเมื่อ", "ปรับปรุงล่าสุด", the audit
+    // log), and on UTC they all showed 7 hours behind the wall clock. It also
+    // makes the scheduler's dailyAt('02:00') backup run at 02:00 local.
+    // NOTE: rows written before this change were stored as UTC and still
+    // display 7 hours early.
+    'timezone' => env('APP_TIMEZONE', 'Asia/Bangkok'),
 
     /*
     |--------------------------------------------------------------------------
