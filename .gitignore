@@ -16,13 +16,15 @@
 /node_modules
 /public/hot
 
-# The compiled Vite output used to be committed here because the production
-# server had no confirmed Node.js. It does now, so the build happens there
-# instead — Plesk's "Additional deployment actions" must run
-# `npm ci && npm run build` on every deploy. Without that step the server
-# ends up with no build/manifest.json at all and every page 500s, so the
-# deploy action has to exist BEFORE this ignore rule reaches production.
-/public/build
+# NOTE: /public/build is intentionally NOT ignored (deviates from the
+# Laravel default). The production server does have Node.js, so building
+# there is possible — but deploys are driven by hand through the Plesk UI
+# with no deployment actions wired up, and building server-side then means
+# the site 500s (no manifest.json) for the whole gap between "Pull Now" and
+# the npm run build that follows it. Committing the compiled Vite output
+# keeps a deploy to pull + clear caches, with no broken window. The cost is
+# that every frontend change must be rebuilt and recommitted from a dev
+# machine. Revisit if Plesk deployment actions ever run the build for us.
 /public/storage
 /storage/*.key
 /storage/pail

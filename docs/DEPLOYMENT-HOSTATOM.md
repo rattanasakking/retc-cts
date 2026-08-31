@@ -7,16 +7,23 @@
 ## วิธี deploy ของโปรเจกต์นี้
 
 HostAtom ใช้ Plesk ซึ่งดึงโค้ดจาก GitHub แบบ **pull-only** (เซิร์ฟเวอร์ไม่ push กลับ)
-งาน build ทั้งหมด — `composer install`, `npm run build`, `artisan optimize` — รันบน
-เซิร์ฟเวอร์ผ่าน **Additional deployment actions** ของ Plesk
+frontend ถูก build จากเครื่อง dev แล้ว commit ขึ้น git ไปพร้อมโค้ด — เซิร์ฟเวอร์
+ไม่ต้องรัน Node เลย
 
 ```
-เครื่อง dev ──git push──> GitHub ──Plesk pull──> HostAtom ──deploy actions──> เว็บพร้อมใช้
+เครื่อง dev ──build + push──> GitHub ──Plesk pull──> เคลียร์ cache ──> เว็บพร้อมใช้
 ```
 
-> **สำคัญ:** `public/build` ถูก gitignore ตั้งแต่ commit `df62a32` เป็นต้นไป
-> ถ้า deploy action ไม่รัน `npm run build` เซิร์ฟเวอร์จะไม่มี `manifest.json`
-> แล้ว **ทุกหน้าจะ 500** ไม่ใช่แค่หน้าตาเพี้ยน
+> **กฎเหล็กของฝั่ง dev:** แก้อะไรที่กระทบ Blade / CSS / JS ต้อง `npm run build`
+> แล้ว commit `public/build` ไปด้วยเสมอ ไม่งั้นเซิร์ฟเวอร์จะได้ CSS เก่าแบบเงียบ ๆ
+
+เซิร์ฟเวอร์มี Node.js 22 ติดตั้งอยู่ (Plesk → Node.js) ใช้ build ได้ถ้าจำเป็น แต่ไม่ได้ใช้
+ในกระบวนการปกติ — เคยลองย้ายไป build ที่นั่นแล้วถอยกลับ เพราะ deploy ทำด้วยมือผ่านหน้าจอ
+Plesk ทำให้เว็บ 500 ตลอดช่วงระหว่างกด Pull Now กับ build เสร็จ
+
+> **ถ้าวันหนึ่งตั้ง Additional deployment actions ได้** ให้ย้ายไป build บนเซิร์ฟเวอร์
+> จะดีกว่า (คลิกเดียวจบ ไม่มีทางลืม rebuild) — ตอนนั้นค่อยเพิ่ม `/public/build` กลับเข้า
+> `.gitignore` แล้วใส่ `npm ci --include=dev` + `npm run build` ใน deployment actions
 
 ---
 
@@ -45,26 +52,26 @@ Plesk → Websites & Domains → **Git** → Add Repository
 - Branch: `main`
 - Deployment mode: **Automatic** (deploy ทันทีที่ push) หรือ **Manual** (กด Pull Now เอง)
 
-### 1.4 ตั้ง Additional deployment actions
+### 1.4 ตั้ง Additional deployment actions (ถ้าใช้ได้)
 
-ในหน้า Git ของ Plesk เปิด **Enable additional deployment actions** แล้วใส่:
+ถ้า Plesk เปิดให้ใช้ ในหน้า Git กด **Enable additional deployment actions** แล้วใส่:
 
 ```bash
 composer install --no-dev --optimize-autoloader --no-interaction
-npm ci
-npm run build
 php artisan migrate --force
 php artisan optimize:clear
 php artisan optimize
 ```
 
-**ถ้า `npm` / `composer` ไม่อยู่ใน PATH** (พบบ่อยบน Plesk) ให้หา path จริงก่อน แล้วใส่แบบเต็ม:
+ไม่มี `npm` ในนี้ เพราะไฟล์ frontend ที่ build แล้วมาพร้อม git อยู่แล้ว
+
+ถ้า Plesk ไม่ยอมให้ใช้ deployment actions ก็ข้ามได้ แค่ต้องรันคำสั่งพวกนี้เองหลัง pull
+(ดูข้อ 2 และ 2.1)
+
+**ถ้า `composer` / `php` ไม่อยู่ใน PATH** (พบบ่อยบน Plesk) ให้หา path จริงก่อนแล้วใส่แบบเต็ม:
 
 ```bash
-which npm composer php || ls /opt/plesk/node/*/bin/npm
-# ตัวอย่างเมื่อต้องใช้ full path
-/opt/plesk/node/22/bin/npm ci
-/opt/plesk/node/22/bin/npm run build
+which composer php
 ```
 
 ### 1.5 ตั้ง .env
@@ -89,7 +96,6 @@ php artisan key:generate
 
 ```bash
 composer install --no-dev --optimize-autoloader
-npm ci && npm run build
 php artisan migrate --force
 php artisan db:seed --class=ThaiGeographySeeder --force
 php artisan storage:link
@@ -151,40 +157,51 @@ php artisan app:register-pdf-thai-font --source=/path/to/fonts
 **บนเครื่อง dev**
 ```bash
 php artisan test          # ต้องเขียว
-git push origin main
+npm run build             # ทุกครั้งที่แก้ Blade / CSS / JS — ห้ามลืม
+git add -A && git commit && git push origin main
 ```
 
 **บนเซิร์ฟเวอร์**
 1. Plesk → Git → **Pull Now** (ข้ามได้ถ้าตั้ง Automatic)
-2. deploy actions จะรันเองตามที่ตั้งไว้ข้อ 1.4 — `composer install` → `npm run build` → `migrate --force` → `optimize`
+2. ถ้าตั้ง deploy actions ไว้ (ข้อ 1.4) มันรันเองจบ — ถ้าไม่ได้ตั้ง ทำข้อ 2.1
 3. เปิดเว็บเช็กหน้าที่เพิ่ง deploy
 
-**เช็กว่าจริงหรือเปล่า** ถ้า deploy actions ไม่ทำงาน ให้ SSH เข้าไปรันมือ:
+`php artisan optimize` สำคัญทุกรอบที่มี **route ใหม่** หรือ **แก้ Blade** — route cache
+เก่าจะทำให้หน้าใหม่ 404 และ view cache เก่าจะทำให้เมนูไม่อัปเดต
+
+### 2.1 เคลียร์ cache เมื่อไม่มี deploy actions
+
+**ถ้ามี SSH**
 ```bash
 cd ~/httpdocs
 git log --oneline -1          # commit ตรงกับที่ push ไหม
 php artisan optimize:clear && php artisan optimize
 ```
 
-`php artisan optimize` สำคัญทุกรอบที่มี **route ใหม่** หรือ **แก้ Blade** — route cache
-เก่าจะทำให้หน้าใหม่ 404 และ view cache เก่าจะทำให้เมนูไม่อัปเดต
+**ถ้าไม่มี SSH** — Plesk → Scheduled Tasks → Add Task → Run a PHP script
+- Script path: `httpdocs/artisan`, arguments: `optimize:clear` → กด Run Now
+- แก้ arguments เป็น `optimize` → กด Run Now อีกครั้ง แล้วลบ task ทิ้ง
+
+**ถ้าเข้าไม่ได้ทั้งสองทาง** — Files → File Manager ลบไฟล์พวกนี้ทิ้ง ได้ผลเหมือนกัน
+(เว็บจะช้าลงนิดหน่อยเพราะไม่มี cache แต่ทำงานถูกต้อง)
+`bootstrap/cache/routes-v7.php`, `bootstrap/cache/config.php`, และไฟล์ทั้งหมดใน `storage/framework/views/`
 
 ---
 
-## ส่วนที่ 3 — รอบนี้โดยเฉพาะ (commit `df62a32`)
+## ส่วนที่ 3 — เรื่องที่เคยลองแล้วถอย: build บนเซิร์ฟเวอร์
 
-commit นี้เปลี่ยนวิธี build จาก "commit ไฟล์ build ขึ้น git" เป็น "build บนเซิร์ฟเวอร์"
-ตอน pull มันจะ **ลบ** `public/build` ทิ้งจากเซิร์ฟเวอร์ ต้องทำตามลำดับนี้เท่านั้น:
+เซิร์ฟเวอร์มี Node.js 22 (Plesk → Node.js → Run Node.js commands) เคยย้ายไป build ที่นั่น
+ใน commit `df62a32` แล้วถอยกลับในรอบถัดมา เพราะ:
 
-1. ตั้ง deploy actions ตามข้อ 1.4 ให้เสร็จ **ก่อน** (โดยเฉพาะ `npm ci && npm run build`)
-2. ทดสอบว่า npm ใช้ได้จริง: `cd ~/httpdocs && npm ci && npm run build` — ต้องได้ไฟล์ใน `public/build/`
-3. ค่อย push / กด Pull Now
-4. เปิด `https://โดเมน/students/recently-updated` เช็กว่าหน้าใหม่ทำงาน และหน้าอื่นยังมี CSS ปกติ
+- deploy ทำด้วยมือผ่าน Plesk UI — ต้องเปิด 3 หน้าจอต่อหนึ่ง deploy
+- ระหว่างกด Pull Now กับ `npm run build` เสร็จ เว็บ **500 ทุกหน้า** เพราะไม่มี `manifest.json`
+- `vite` อยู่ใน devDependencies ต้อง `npm ci --include=dev` ก่อน ไม่งั้นได้ `vite: not found`
+- ช่อง Run Node.js commands รันได้แค่คำสั่ง npm — `php artisan` ต้องไปทำที่อื่นอยู่ดี
 
-ถ้าเซิร์ฟเวอร์ยังมี `public/build` เวอร์ชันเก่าค้างเป็น local changes แล้ว pull ไม่ผ่าน:
-```bash
-git checkout -- public/build && git pull
-```
+**ถ้าจะย้ายกลับไป build บนเซิร์ฟเวอร์** ให้ทำตามลำดับนี้เท่านั้น
+1. ตั้ง Additional deployment actions ให้รัน `npm ci --include=dev && npm run build && php artisan optimize` ให้ได้ก่อน
+2. ทดสอบ `npm ci --include=dev` + `npm run build` บนเซิร์ฟเวอร์ว่าผ่านจริง
+3. ค่อยเพิ่ม `/public/build` เข้า `.gitignore` แล้ว `git rm -r --cached public/build`
 
 ---
 
@@ -192,7 +209,6 @@ git checkout -- public/build && git pull
 
 | สถานการณ์ | วิธีแก้ |
 | --- | --- |
-| `npm run build` ล้ม / RAM ไม่พอ | `git revert df62a32` แล้ว push — ไฟล์ build ชุดที่ commit ไว้จะกลับมาใน git เหมือนเดิม |
 | โค้ดรอบล่าสุดมีปัญหา | `git revert <commit>` บนเครื่อง dev แล้ว push ใหม่ (อย่าแก้ไฟล์บนเซิร์ฟเวอร์ตรงๆ เพราะ pull รอบหน้าจะชน) |
 | migration ใหม่ทำข้อมูลเสีย | กู้จาก Settings → สำรอง/กู้คืนข้อมูล (มี backup อัตโนมัติทุกวันตี 2 เก็บ 30 ชุด) |
 
@@ -203,8 +219,9 @@ git checkout -- public/build && git pull
 | อาการ | สาเหตุ | แก้ |
 | --- | --- | --- |
 | หน้าใหม่ขึ้น 404 ทั้งที่โค้ดขึ้นแล้ว | route cache เก่า | `php artisan optimize:clear && php artisan optimize` |
-| ทุกหน้า 500 `Unable to locate file in Vite manifest` | ยังไม่ได้ `npm run build` บนเซิร์ฟเวอร์ | `npm ci && npm run build` |
-| เว็บไม่มี CSS เลย | document root ไม่ได้ชี้ที่ `public/` หรือ build หาย | ตรวจ document root / rebuild |
+| ทุกหน้า 500 `Unable to locate file in Vite manifest` | `public/build` หายจากเซิร์ฟเวอร์ | เช็กว่า `public/build/manifest.json` มีอยู่จริง ถ้าไม่มีให้ `npm run build` บนเครื่อง dev แล้ว commit + push ใหม่ |
+| เว็บไม่มี CSS เลย | document root ไม่ได้ชี้ที่ `public/` | ตรวจ document root |
+| หน้าตาเพี้ยน สไตล์ใหม่ไม่มา | ลืม `npm run build` ก่อน commit | build แล้ว commit `public/build` ใหม่ |
 | ล็อกอินแล้วเด้งกลับหน้า login | session cookie ไม่ถูกส่งกลับ — เช็ก `SESSION_SECURE_COOKIE` กับ `APP_URL` ว่าตรง scheme กัน | แก้ `.env` แล้ว `php artisan optimize:clear` |
 | นำเข้า CSV ค้าง ไม่มีอะไรเกิดขึ้น | ไม่มีตัวรันคิว | ตั้ง cron `queue:work --stop-when-empty` ตามข้อ 1.9 |
 | PDF export ตัวหนังสือไทยหาย | ยังไม่ได้ลงฟอนต์ | ทำตามข้อ 1.10 |
