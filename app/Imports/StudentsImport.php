@@ -18,13 +18,15 @@ class StudentsImport implements OnEachRow, ShouldQueue, WithChunkReading, WithEv
 {
     use ImportsStudentRow;
 
-    public function __construct(private readonly int $importLogId, private readonly bool $updateExisting = false)
-    {
-    }
+    public function __construct(private readonly int $importLogId, private readonly bool $updateExisting = false) {}
 
     public function onRow(Row $row): void
     {
         $this->validateAndCreateStudent($row->getIndex() + 1, $row->toArray());
+
+        // This format carries student fields only, so there is never extra
+        // work beyond what validateAndCreateStudent() already did.
+        $this->finishRow();
     }
 
     public function chunkSize(): int

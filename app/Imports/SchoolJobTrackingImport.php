@@ -8,6 +8,7 @@ use App\Models\CareerStatus;
 use App\Models\ImportLog;
 use App\Models\Student;
 use App\Support\AuditLogger;
+use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Maatwebsite\Excel\Concerns\OnEachRow;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
@@ -71,9 +72,7 @@ class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReadin
 
     private const COL_WORK_RELEVANCE = 24;
 
-    public function __construct(private readonly int $importLogId, private readonly bool $updateExisting = false)
-    {
-    }
+    public function __construct(private readonly int $importLogId, private readonly bool $updateExisting = false) {}
 
     public function onRow(Row $row): void
     {
@@ -104,32 +103,48 @@ class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReadin
             'status' => 'graduated',
         ]);
 
-        if ($student) {
-            $this->createCareerStatus($student, $cells);
-        }
+        $wroteCareerStatus = $student ? $this->createCareerStatus($student, $cells) : false;
+
+        $this->finishRow($wroteCareerStatus);
     }
 
-    private function createCareerStatus(Student $student, array $cells): void
+    /**
+     * @return bool มีการบันทึกภาวะการมีงานทำใหม่หรือไม่
+     */
+    private function createCareerStatus(Student $student, array $cells): bool
     {
         $workplace = $this->cell($cells, self::COL_WORKPLACE);
+        $position = $this->cell($cells, self::COL_POSITION);
+        $salary = $this->parseSalaryRange($this->cell($cells, self::COL_SALARY_RANGE));
         $furtherStudyInstitution = $this->cell($cells, self::COL_FURTHER_STUDY_INSTITUTION);
 
-        if ($workplace === '' && $furtherStudyInstitution === '') {
-            return;
+        // ตำแหน่งงานหรือเงินเดือนก็นับว่ามีงานทำ ไม่ใช่แค่ชื่อสถานที่ทำงาน —
+        // ในรายงานจริงมีหลายแถวที่กรอกตำแหน่ง/เงินเดือนไว้แต่เว้นชื่อบริษัท
+        // ว่าง ถ้าดูแค่ชื่อบริษัทคนกลุ่มนี้จะกลายเป็น "ยังไม่ตอบแบบสำรวจ"
+        $isEmployed = $workplace !== '' || $position !== '' || ($salary !== null && $salary > 0);
+
+        if (! $isEmployed && $furtherStudyInstitution === '') {
+            return false;
+        }
+
+        // ไม่เขียนทับของเดิม — การนำเข้าไฟล์เดิมซ้ำจึงเติมได้เฉพาะคนที่ยังไม่มี
+        // ข้อมูลภาวะการมีงานทำของปีนั้น และไม่สร้างประวัติซ้ำซ้อน
+        if ($student->careerStatuses()->where('academic_year_id', $student->academic_year_id)->exists()) {
+            return false;
         }
 
         // Suppress CareerStatusObserver's per-record admin notification —
         // a bulk import creating hundreds of rows would otherwise flood
         // every admin's email/LINE with one message per student.
-        CareerStatus::withoutEvents(function () use ($student, $cells, $workplace, $furtherStudyInstitution) {
-            if ($workplace !== '') {
+        CareerStatus::withoutEvents(function () use ($student, $cells, $workplace, $position, $salary, $furtherStudyInstitution, $isEmployed) {
+            if ($isEmployed) {
                 CareerStatus::create([
                     'student_id' => $student->id,
                     'academic_year_id' => $student->academic_year_id,
                     'status' => CareerStatusType::Employed,
-                    'company_name' => $workplace,
-                    'position' => $this->cell($cells, self::COL_POSITION) ?: null,
-                    'monthly_salary' => $this->parseSalaryRange($this->cell($cells, self::COL_SALARY_RANGE)),
+                    'company_name' => $workplace ?: null,
+                    'position' => $position ?: null,
+                    'monthly_salary' => $salary,
                     'is_related_to_major' => $this->cell($cells, self::COL_WORK_RELEVANCE) === 'ตรง',
                     'effective_date' => now(),
                     'source' => 'imported',
@@ -153,6 +168,8 @@ class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReadin
                 'notes' => trim("ศึกษาต่อที่ {$furtherStudyInstitution}".($major !== '' ? " สาขา {$major}" : '')),
             ]);
         });
+
+        return true;
     }
 
     private function cell(array $cells, int $index): string
@@ -174,7 +191,7 @@ class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReadin
         }
 
         try {
-            return \Carbon\Carbon::createFromFormat('d/m/Y', $value)->toDateString();
+            return Carbon::createFromFormat('d/m/Y', $value)->toDateString();
         } catch (\Throwable) {
             return null;
         }
@@ -182,8 +199,8 @@ class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReadin
 
     /**
      * @return array{0: string, 1: string} [first_name, last_name] — Thai
-     *      names in this report are "FirstName LastName" separated by a
-     *      single space, so only the first space is a real split point.
+     *                                     names in this report are "FirstName LastName" separated by a
+     *                                     single space, so only the first space is a real split point.
      */
     private function splitName(string $fullName): array
     {

@@ -180,6 +180,79 @@ class SchoolJobTrackingImportTest extends TestCase
         $this->assertSame(1, $log->updated_rows);
     }
 
+    public function test_a_position_or_a_salary_alone_still_counts_as_employed(): void
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $csv = $this->reportCsv(
+            // ตำแหน่งงานอย่างเดียว ไม่มีชื่อสถานที่ทำงาน
+            'มีตำแหน่ง ไม่มีบริษัท,,ประกาศนียบัตรวิชาชีพ 3,,อุตสาหกรรม,,2569,,67-00101,,,,,,,,,,,,,,ช่างซ่อมบำรุง,,,,2569,ปกติ',
+            // เงินเดือนอย่างเดียว
+            'มีเงินเดือน ไม่มีอย่างอื่น,,ประกาศนียบัตรวิชาชีพ 3,,อุตสาหกรรม,,2569,,67-00102,,,,,,,,,,,,,,,"9,001 - 15,000",,,2569,ปกติ',
+            // ว่างทั้งสามช่อง — ต้องไม่มีภาวะการมีงานทำ
+            'ไม่มีข้อมูล เลย,,ประกาศนียบัตรวิชาชีพ 3,,อุตสาหกรรม,,2569,,67-00103,,,,,,,,,,,,,,,,,,2569,ปกติ',
+        );
+
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('format', 'school_report')
+            ->set('file', $csv)
+            ->call('import');
+
+        $byPosition = Student::where('student_code', '67-00101')->first();
+        $this->assertSame('employed', $byPosition->currentCareerStatus->status->value);
+        $this->assertSame('ช่างซ่อมบำรุง', $byPosition->currentCareerStatus->position);
+        $this->assertNull($byPosition->currentCareerStatus->company_name);
+
+        $bySalary = Student::where('student_code', '67-00102')->first();
+        $this->assertSame('employed', $bySalary->currentCareerStatus->status->value);
+        $this->assertSame(12000.50, (float) $bySalary->currentCareerStatus->monthly_salary);
+
+        $empty = Student::where('student_code', '67-00103')->first();
+        $this->assertNull($empty->currentCareerStatus);
+    }
+
+    public function test_reimporting_backfills_a_missing_career_status_and_counts_as_updated(): void
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        // นักศึกษาถูกนำเข้าไว้ก่อนหน้าแล้ว โดยยังไม่มีภาวะการมีงานทำ
+        $row = 'สมชาย ใจดี,,ประกาศนียบัตรวิชาชีพ 3,,อุตสาหกรรม,,2569,,67-00110,,,,,,,,,,,,,,ช่างเทคนิค,,,,2569,ปกติ';
+        $student = Student::factory()->create(['student_code' => '67-00110']);
+        $this->assertNull($student->currentCareerStatus);
+
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('format', 'school_report')
+            ->set('updateExisting', true)
+            ->set('file', $this->reportCsv($row))
+            ->call('import');
+
+        $student->refresh();
+        $this->assertSame('employed', $student->currentCareerStatus->status->value);
+
+        $log = ImportLog::first();
+        $this->assertSame(1, $log->updated_rows);
+        $this->assertSame(0, $log->skipped_rows); // แถวนี้ได้เขียนอะไรจริง ไม่ใช่ข้าม
+
+        // นำเข้าซ้ำอีกรอบต้องไม่สร้างประวัติซ้ำ และคราวนี้ถือเป็นแถวที่ข้าม
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('format', 'school_report')
+            ->set('updateExisting', true)
+            ->set('file', $this->reportCsv($row))
+            ->call('import');
+
+        $this->assertSame(1, CareerStatus::where('student_id', $student->id)->count());
+        $this->assertSame(1, ImportLog::orderByDesc('id')->first()->skipped_rows);
+    }
+
     public function test_rows_missing_the_student_code_column_are_rejected_and_logged(): void
     {
         Storage::fake('local');

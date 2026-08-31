@@ -18,12 +18,26 @@ use Illuminate\Support\Facades\Validator;
  * (constructor-set, defaults to false in practice) — when true, a row whose
  * student_code already matches an active student fills in that student's
  * currently-empty fields instead of being rejected as a duplicate. Existing
- * non-empty values are never overwritten, and no CareerStatus is created for
- * an update (only for a genuinely new student) — callers should treat a null
- * return as "nothing more to do for this row" either way.
+ * non-empty values are never overwritten. The matched student is returned so
+ * the caller can still write related records for it (a re-import is how the
+ * school report backfills career statuses onto students imported earlier);
+ * a null return means the row produced nothing and was already counted.
+ *
+ * Every using class must call finishRow() at the end of its onRow(), which
+ * books the row as updated or skipped.
  */
 trait ImportsStudentRow
 {
+    /**
+     * null = แถวนี้ถูกนับไปแล้ว (สร้างนักศึกษาใหม่ หรือ ล้มเหลว)
+     * true/false = แถวที่ตรงกับนักศึกษาเดิม และเติมข้อมูลได้/ไม่ได้
+     *
+     * ค้างไว้จนกว่า finishRow() จะถูกเรียก เพราะ importer บางตัวยังเขียน
+     * ข้อมูลอย่างอื่นต่อจากนั้นได้ (เช่นภาวะการมีงานทำ) ซึ่งทำให้แถวที่
+     * "ไม่มีอะไรเปลี่ยน" กลายเป็นแถวที่อัปเดตจริง
+     */
+    private ?bool $existingRowChanged = null;
+
     /**
      * @param  array<string, mixed>  $data  student_code, national_id, prefix,
      *                                      first_name, last_name, birth_date, academic_year, program,
@@ -33,6 +47,8 @@ trait ImportsStudentRow
      */
     private function validateAndCreateStudent(int $rowNumber, array $data): ?Student
     {
+        $this->existingRowChanged = null;
+
         $validator = Validator::make($data, [
             'student_code' => ['required', 'string', 'max:255'],
             'national_id' => ['nullable', 'digits:13'],
@@ -94,9 +110,15 @@ trait ImportsStudentRow
                 return null;
             }
 
-            $this->fillMissingFields($existing, $data, $rowNumber);
+            $changed = $this->fillMissingFields($existing, $data, $rowNumber);
 
-            return null;
+            if ($changed === null) {
+                return null; // เขียนไม่สำเร็จ นับเป็นแถวล้มเหลวไปแล้ว
+            }
+
+            $this->existingRowChanged = $changed;
+
+            return $existing;
         }
 
         // withTrashed(): student_code/national_id are unique at the DB
@@ -158,7 +180,7 @@ trait ImportsStudentRow
      * column was read. Never overwrites a value that's already set, so a
      * re-import can't silently clobber a manual correction staff made.
      */
-    private function fillMissingFields(Student $student, array $data, int $rowNumber): void
+    private function fillMissingFields(Student $student, array $data, int $rowNumber): ?bool
     {
         $candidates = [
             'national_id' => isset($data['national_id']) && $data['national_id'] !== '' ? trim((string) $data['national_id']) : null,
@@ -178,15 +200,8 @@ trait ImportsStudentRow
             }
         }
 
-        // Nothing left to fill in — the row is neither an import nor a
-        // failure, so it needs a counter of its own. Without one these rows
-        // vanish from the log entirely and a re-import of an already-complete
-        // file reads as "1,466 rows, 0 imported, 0 failed", which looks like
-        // the import silently lost every row.
         if ($changes === []) {
-            ImportLog::whereKey($this->importLogId)->increment('skipped_rows');
-
-            return;
+            return false;
         }
 
         try {
@@ -195,11 +210,36 @@ trait ImportsStudentRow
             // Most likely national_id now collides with a different student.
             $this->recordFailure($rowNumber, ['ไม่สามารถอัปเดตข้อมูลที่ขาดหายไปได้ เนื่องจากข้อมูลใหม่ซ้ำกับนักศึกษาคนอื่น']);
 
+            return null;
+        }
+
+        return true;
+    }
+
+    /**
+     * ปิดบัญชีของแถวที่ตรงกับนักศึกษาเดิม — ต้องเรียกท้าย onRow() ของทุก
+     * importer ที่ใช้ trait นี้ ไม่งั้นแถวกลุ่มนั้นจะไม่ถูกนับเลย
+     *
+     * แถวที่ไม่มีอะไรเปลี่ยนเลยต้องมีตัวนับของตัวเอง ไม่งั้นการนำเข้าไฟล์เดิมซ้ำ
+     * จะอ่านออกมาเป็น "1,466 แถว สำเร็จ 0 ล้มเหลว 0" ซึ่งดูเหมือนข้อมูลหายทั้งไฟล์
+     *
+     * @param  bool  $didExtraWork  แถวนี้เขียนอย่างอื่นเพิ่มหรือไม่ (เช่นบันทึก
+     *                              ภาวะการมีงานทำที่ยังไม่เคยมี) ถ้าใช่ก็ถือว่าอัปเดต ไม่ใช่ข้าม
+     */
+    private function finishRow(bool $didExtraWork = false): void
+    {
+        if ($this->existingRowChanged === null) {
             return;
         }
 
-        ImportLog::whereKey($this->importLogId)->increment('imported_rows');
-        ImportLog::whereKey($this->importLogId)->increment('updated_rows');
+        if ($this->existingRowChanged || $didExtraWork) {
+            ImportLog::whereKey($this->importLogId)->increment('imported_rows');
+            ImportLog::whereKey($this->importLogId)->increment('updated_rows');
+        } else {
+            ImportLog::whereKey($this->importLogId)->increment('skipped_rows');
+        }
+
+        $this->existingRowChanged = null;
     }
 
     private function recordFailure(int $rowNumber, array $messages): void
