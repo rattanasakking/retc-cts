@@ -26,10 +26,10 @@ trait ImportsStudentRow
 {
     /**
      * @param  array<string, mixed>  $data  student_code, national_id, prefix,
-     *      first_name, last_name, birth_date, academic_year, program,
-     *      degree_level, phone, email, status — same shape StudentsImport's
-     *      CSV template uses; callers translate their own source format
-     *      into this shape. birth_date must already be a Y-m-d string.
+     *                                      first_name, last_name, birth_date, academic_year, program,
+     *                                      degree_level, phone, email, status — same shape StudentsImport's
+     *                                      CSV template uses; callers translate their own source format
+     *                                      into this shape. birth_date must already be a Y-m-d string.
      */
     private function validateAndCreateStudent(int $rowNumber, array $data): ?Student
     {
@@ -46,6 +46,34 @@ trait ImportsStudentRow
             'phone' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255'],
             'status' => ['nullable', 'in:studying,graduated,dropped_out'],
+        ], [
+            // Laravel's default messages are English (this app ships no lang
+            // files), and these end up verbatim in the import log that staff
+            // read to find out why a row was rejected — so they're written
+            // out here in Thai instead.
+            'required' => 'ไม่ได้กรอก:attribute',
+            'digits' => ':attribute ต้องมี :digits หลัก',
+            'integer' => ':attribute ต้องเป็นตัวเลข',
+            'min' => ':attribute ต้องไม่น้อยกว่า :min',
+            'max' => ':attribute ยาวเกินกำหนด (:max)',
+            'academic_year.max' => 'ปีการศึกษาต้องไม่เกิน :max (ใช้ปี พ.ศ.)',
+            'date' => ':attribute ไม่ใช่วันที่ที่ถูกต้อง',
+            'email' => ':attribute ไม่ใช่อีเมลที่ถูกต้อง',
+            'string' => ':attribute ต้องเป็นข้อความ',
+            'in' => ':attribute ไม่ใช่ค่าที่ระบบรองรับ',
+        ], [
+            'student_code' => 'รหัสนักศึกษา',
+            'national_id' => 'เลขบัตรประชาชน',
+            'prefix' => 'คำนำหน้า',
+            'first_name' => 'ชื่อ',
+            'last_name' => 'นามสกุล',
+            'birth_date' => 'วันเกิด',
+            'academic_year' => 'ปีการศึกษา',
+            'program' => 'สาขาวิชา',
+            'degree_level' => 'ระดับการศึกษา',
+            'phone' => 'เบอร์โทรศัพท์',
+            'email' => 'อีเมล',
+            'status' => 'สถานะนักศึกษา',
         ]);
 
         if ($validator->fails()) {

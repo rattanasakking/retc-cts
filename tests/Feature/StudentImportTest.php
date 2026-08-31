@@ -82,6 +82,85 @@ class StudentImportTest extends TestCase
         $this->assertNotEmpty($log->errors);
     }
 
+    public function test_validation_failures_are_recorded_in_thai(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $csv = "student_code,first_name,last_name,national_id,academic_year,status\n".
+            "67-00010,สมชาย,,1234567890123,2569,graduated\n".  // ไม่มีนามสกุล
+            "67-00011,สมหญิง,รักเรียน,12345,2569,graduated\n"; // เลขบัตรไม่ครบ 13 หลัก
+
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('file', $this->csv($csv))
+            ->call('import');
+
+        $messages = collect(ImportLog::first()->errors)->pluck('messages')->flatten();
+
+        $this->assertTrue($messages->contains('ไม่ได้กรอกนามสกุล'));
+        $this->assertTrue($messages->contains('เลขบัตรประชาชน ต้องมี 13 หลัก'));
+    }
+
+    public function test_admin_can_reopen_the_error_details_of_a_past_import(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $csv = "student_code,first_name,last_name,academic_year,status\n".
+            "67-00020,สมชาย,ใจดี,2569,graduated\n".
+            ",สมหญิง,รักเรียน,2569,graduated\n";
+
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('file', $this->csv($csv))
+            ->call('import');
+
+        $log = ImportLog::first();
+
+        // A fresh visit to the page — the import panel is gone, but the
+        // history row must still be able to show why that row was rejected.
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->assertDontSee('รายละเอียดข้อผิดพลาดในการนำเข้า')
+            ->call('viewErrors', $log->id)
+            ->assertSee('รายละเอียดข้อผิดพลาดในการนำเข้า')
+            ->assertSee('ไม่ได้กรอกรหัสนักศึกษา')
+            ->call('closeErrors')
+            ->assertDontSee('รายละเอียดข้อผิดพลาดในการนำเข้า');
+    }
+
+    public function test_the_error_summary_groups_the_same_cause_together(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        Student::factory()->create(['student_code' => 'DUP-100']);
+        Student::factory()->create(['student_code' => 'DUP-200']);
+
+        $csv = "student_code,first_name,last_name,academic_year,status\n".
+            "DUP-100,สมชาย,ใจดี,2569,graduated\n".
+            "DUP-200,สมหญิง,รักเรียน,2569,graduated\n";
+
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('file', $this->csv($csv))
+            ->call('import');
+
+        $summary = Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->call('viewErrors', ImportLog::first()->id)
+            ->instance()
+            ->errorSummary;
+
+        // ทั้งสองแถวตกด้วยเหตุผลเดียวกัน ต่างกันแค่ตัวรหัส — ต้องถูกรวมเป็นบรรทัดเดียว
+        $this->assertCount(1, $summary);
+        $this->assertSame(2, $summary[0]['count']);
+        $this->assertStringContainsString('ซ้ำกับข้อมูลที่มีอยู่แล้ว', $summary[0]['message']);
+    }
+
     public function test_duplicate_student_code_against_existing_data_is_rejected(): void
     {
         Storage::fake('local');

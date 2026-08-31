@@ -29,6 +29,19 @@ class StudentImporter extends Component
 
     public ?int $activeImportLogId = null;
 
+    /** ประวัติการนำเข้าที่กำลังเปิดดูข้อผิดพลาดอยู่ (null = ปิด) */
+    public ?int $viewingErrorsLogId = null;
+
+    public function viewErrors(int $importLogId): void
+    {
+        $this->viewingErrorsLogId = $importLogId;
+    }
+
+    public function closeErrors(): void
+    {
+        $this->viewingErrorsLogId = null;
+    }
+
     /** Rows to skip before data starts, per format — the school report has 4 title/metadata rows plus its own header row. */
     private const HEADER_ROWS = [
         'standard' => 1,
@@ -123,6 +136,40 @@ class StudentImporter extends Component
             ->latest()
             ->limit(10)
             ->get();
+    }
+
+    public function getViewingErrorsLogProperty(): ?ImportLog
+    {
+        return $this->viewingErrorsLogId
+            ? ImportLog::where('type', 'students')->find($this->viewingErrorsLogId)
+            : null;
+    }
+
+    /**
+     * รวมข้อผิดพลาดที่เป็นเรื่องเดียวกันเข้าด้วยกันพร้อมจำนวนแถว เพื่อให้เห็น
+     * ภาพรวมก่อนว่าส่วนใหญ่ตกเพราะอะไร — ตัวเลขในข้อความ (รหัสนักศึกษา,
+     * เลขบัตรประชาชน) ถูกแทนด้วย … เพราะไม่งั้นทุกแถวจะกลายเป็นคนละสาเหตุกัน
+     *
+     * @return array<int, array{message: string, count: int}>
+     */
+    public function getErrorSummaryProperty(): array
+    {
+        $counts = [];
+
+        foreach ($this->viewingErrorsLog?->errors ?? [] as $error) {
+            foreach ($error['messages'] ?? [] as $message) {
+                $key = preg_replace('/\d+/u', '…', $message);
+                $counts[$key] = ($counts[$key] ?? 0) + 1;
+            }
+        }
+
+        arsort($counts);
+
+        return array_map(
+            fn ($message, $count) => ['message' => $message, 'count' => $count],
+            array_keys($counts),
+            $counts
+        );
     }
 
     public function render()

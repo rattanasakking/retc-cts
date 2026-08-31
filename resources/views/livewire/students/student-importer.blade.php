@@ -119,22 +119,12 @@
                 </div>
 
                 @if ($active->errors && count($active->errors) > 0)
-                    <div class="collapse collapse-arrow bg-base-200 mt-2">
-                        <input type="checkbox" />
-                        <div class="collapse-title text-sm font-medium">
-                            ดูรายละเอียดข้อผิดพลาด ({{ count($active->errors) }} แถว)
-                        </div>
-                        <div class="collapse-content">
-                            <ul class="text-xs space-y-1 max-h-48 overflow-y-auto">
-                                @foreach (array_slice($active->errors, 0, 50) as $error)
-                                    <li>
-                                        <span class="font-semibold">แถว {{ $error['row'] }}:</span>
-                                        {{ implode(', ', $error['messages']) }}
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </div>
+                    <button type="button" wire:click="viewErrors({{ $active->id }})" class="btn btn-outline btn-error btn-sm mt-2 w-fit gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                        </svg>
+                        ดูรายละเอียดข้อผิดพลาด ({{ count($active->errors) }} แถว)
+                    </button>
                 @endif
             </div>
         </div>
@@ -155,6 +145,7 @@
                             <th class="text-right">ทั้งหมด</th>
                             <th class="text-right">สำเร็จ</th>
                             <th class="text-right">ล้มเหลว</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -182,15 +173,92 @@
                                 <td class="text-right tabular-nums">{{ number_format($log->total_rows) }}</td>
                                 <td class="text-right tabular-nums text-success">{{ number_format($log->imported_rows) }}</td>
                                 <td class="text-right tabular-nums text-error">{{ number_format($log->failed_rows) }}</td>
+                                <td class="text-right">
+                                    @if ($log->errors && count($log->errors) > 0)
+                                        <button type="button" wire:click="viewErrors({{ $log->id }})" class="btn btn-ghost btn-xs text-error">ดูข้อผิดพลาด</button>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center text-base-content/60 py-6">ยังไม่มีประวัติการนำเข้า</td>
+                                <td colspan="7" class="text-center text-base-content/60 py-6">ยังไม่มีประวัติการนำเข้า</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
+
+    {{-- Import error details --}}
+    @php $errorLog = $this->viewingErrorsLog; @endphp
+    <div class="modal {{ $errorLog ? 'modal-open' : '' }}" role="dialog" aria-modal="true">
+        <div class="modal-box max-w-3xl p-0 overflow-hidden">
+            @if ($errorLog)
+                <div class="px-6 py-5 border-b border-base-300">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-lg">รายละเอียดข้อผิดพลาดในการนำเข้า</h3>
+                            <p class="text-sm text-base-content/60 truncate">{{ $errorLog->file_name }}</p>
+                            <p class="text-xs text-base-content/50 mt-1">
+                                นำเข้าเมื่อ {{ $errorLog->created_at->format('d/m/').($errorLog->created_at->format('Y') + 543) }} {{ $errorLog->created_at->format('H:i') }}
+                                · ทั้งหมด {{ number_format($errorLog->total_rows) }} แถว
+                                · สำเร็จ {{ number_format($errorLog->imported_rows) }}
+                                · ล้มเหลว {{ number_format($errorLog->failed_rows) }}
+                            </p>
+                        </div>
+                        <button type="button" wire:click="closeErrors" class="btn btn-sm btn-circle btn-ghost" aria-label="ปิด">✕</button>
+                    </div>
+                </div>
+
+                <div class="px-6 py-5 space-y-5 max-h-[65vh] overflow-y-auto">
+                    {{-- Grouped causes --}}
+                    <div>
+                        <h4 class="text-xs font-semibold uppercase tracking-wider text-base-content/40 mb-3">สรุปสาเหตุ</h4>
+                        <ul class="space-y-2">
+                            @foreach ($this->errorSummary as $group)
+                                <li class="flex items-start justify-between gap-4 text-sm border-b border-base-200 pb-2">
+                                    <span>{{ $group['message'] }}</span>
+                                    <span class="badge badge-error badge-sm shrink-0 tabular-nums">{{ number_format($group['count']) }} แถว</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+
+                    {{-- Row by row --}}
+                    <div>
+                        <h4 class="text-xs font-semibold uppercase tracking-wider text-base-content/40 mb-3">
+                            รายแถว ({{ number_format(count($errorLog->errors)) }} แถว)
+                        </h4>
+                        <div class="overflow-x-auto border border-base-300 rounded-box">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th class="w-24">บรรทัดที่</th>
+                                        <th>สาเหตุ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($errorLog->errors as $error)
+                                        <tr wire:key="import-error-{{ $errorLog->id }}-{{ $loop->index }}">
+                                            <td class="tabular-nums align-top">{{ $error['row'] }}</td>
+                                            <td>{{ implode(' · ', $error['messages']) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-xs text-base-content/50 mt-2">
+                            "บรรทัดที่" นับตามบรรทัดจริงในไฟล์ CSV เปิดไฟล์แล้วกระโดดไปบรรทัดนั้นได้เลย
+                        </p>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 border-t border-base-300 flex justify-end">
+                    <button type="button" wire:click="closeErrors" class="btn btn-ghost btn-sm">ปิด</button>
+                </div>
+            @endif
+        </div>
+        <div class="modal-backdrop" wire:click="closeErrors"></div>
     </div>
 </div>
