@@ -7,6 +7,7 @@ use App\Livewire\Notifications\NotificationLogs;
 use App\Livewire\Notifications\SendReminders;
 use App\Livewire\Public\CareerStatusSelfReport;
 use App\Livewire\Public\StudentSearch;
+use App\Livewire\Reports\CareerStatusReport;
 use App\Livewire\Reports\ExportCenter;
 use App\Livewire\Settings\AcademicYears as SettingsAcademicYears;
 use App\Livewire\Settings\Backup as SettingsBackup;
@@ -78,9 +79,10 @@ Route::get('/students/{student}', StudentsShow::class)
     ->middleware('auth')
     ->name('students.show');
 
-Route::middleware(['auth', 'role:admin,executive,department_head'])
-    ->get('/reports/export', ExportCenter::class)
-    ->name('reports.export');
+Route::middleware(['auth', 'role:admin,executive,department_head'])->prefix('reports')->name('reports.')->group(function () {
+    Route::get('/career-status', CareerStatusReport::class)->name('career-status');
+    Route::get('/export', ExportCenter::class)->name('export');
+});
 
 Route::middleware(['auth', 'role:admin,teacher,department_head'])
     ->get('/notifications/reminders', SendReminders::class)
