@@ -13,6 +13,7 @@ use App\Livewire\Settings\Backup as SettingsBackup;
 use App\Livewire\Settings\SystemInformation as SettingsSystemInformation;
 use App\Livewire\Settings\Users as SettingsUsers;
 use App\Livewire\Students\Index as StudentsIndex;
+use App\Livewire\Students\RecentlyUpdated as StudentsRecentlyUpdated;
 use App\Livewire\Students\Show as StudentsShow;
 use App\Livewire\Students\StudentImporter;
 use App\Livewire\Students\Trash as StudentsTrash;
@@ -41,6 +42,12 @@ Route::view('profile', 'profile')
 Route::get('/students', StudentsIndex::class)
     ->middleware('auth')
     ->name('students.index');
+
+// Must stay above the /students/{student} route below, otherwise the
+// wildcard swallows it and route model binding 404s on "recently-updated".
+Route::get('/students/recently-updated', StudentsRecentlyUpdated::class)
+    ->middleware('auth')
+    ->name('students.recently-updated');
 
 Route::middleware(['auth', 'role:admin,teacher,department_head'])
     ->get('/career-statuses/create', CareerStatusForm::class)

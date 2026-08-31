@@ -5,6 +5,12 @@
             <p class="text-sm text-base-content/60">ค้นหา กรอง และจัดการข้อมูลนักศึกษาในระบบ</p>
         </div>
         <div class="flex gap-2">
+            <a href="{{ route('students.recently-updated') }}" wire:navigate class="btn btn-outline btn-sm gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                ปรับปรุงล่าสุด
+            </a>
             @if ($canManage)
                 <a href="{{ route('students.trash') }}" wire:navigate class="btn btn-outline btn-sm gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
