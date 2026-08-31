@@ -31,6 +31,19 @@ class RecentlyUpdated extends Component
 
     public int $perPage = 15;
 
+    /** นักศึกษาที่กำลังเปิดดูใน popup (null = ปิดอยู่) */
+    public ?int $viewingId = null;
+
+    public function openDetail(int $id): void
+    {
+        $this->viewingId = $id;
+    }
+
+    public function closeDetail(): void
+    {
+        $this->viewingId = null;
+    }
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -194,8 +207,19 @@ class RecentlyUpdated extends Component
             $student->last_updated_human = $this->humanDiff($student->last_updated_at);
         });
 
+        // นักศึกษาใน popup หยิบจากหน้าที่แสดงอยู่ ไม่ query ซ้ำ — ได้ last_updated_at
+        // ที่คำนวณไว้แล้วติดมาด้วย และถ้าแถวนั้นหลุดจากตัวกรองไปแล้ว popup ก็ปิดเอง
+        $viewingStudent = $this->viewingId
+            ? $students->getCollection()->firstWhere('id', $this->viewingId)
+            : null;
+
+        $viewingStudent?->load(['careerStatuses' => fn ($query) => $query
+            ->with(['academicYear', 'workProvince', 'workDistrict', 'workSubdistrict', 'verifiedBy'])
+            ->orderByDesc('effective_date')]);
+
         return view('livewire.students.recently-updated', [
             'students' => $students,
+            'viewingStudent' => $viewingStudent,
             'academicYears' => AcademicYear::orderByDesc('year')->get(),
             'latestLogs' => $this->latestAuditLogsFor($students->getCollection()->pluck('id')->all()),
             'updatedTodayCount' => $this->countUpdatedSince(now()->subDay()),

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CareerStatusType;
 use App\Enums\UserRole;
 use App\Livewire\Students\RecentlyUpdated;
 use App\Models\AcademicYear;
@@ -116,6 +117,31 @@ class StudentRecentlyUpdatedTest extends TestCase
             ->set('filterAcademicYearId', $otherYear->id)
             ->assertSee('ปิติ')
             ->assertDontSee('มานะ');
+    }
+
+    public function test_clicking_a_student_opens_the_detail_popup_and_closing_hides_it(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $year = AcademicYear::factory()->create();
+        $student = $this->studentUpdatedAt($year, 'มานะ', now()->subHour()->toDateTimeString());
+
+        CareerStatus::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'status' => CareerStatusType::Employed,
+            'company_name' => 'บริษัททดสอบ จำกัด',
+            'position' => 'ช่างเทคนิค',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(RecentlyUpdated::class)
+            ->assertDontSee('บริษัททดสอบ จำกัด') // popup ยังไม่เปิด
+            ->call('openDetail', $student->id)
+            ->assertSee('บริษัททดสอบ จำกัด')
+            ->assertSee('ช่างเทคนิค')
+            ->assertSee('ดูข้อมูลเต็ม')
+            ->call('closeDetail')
+            ->assertDontSee('บริษัททดสอบ จำกัด');
     }
 
     public function test_the_latest_editor_from_the_audit_log_is_shown(): void
