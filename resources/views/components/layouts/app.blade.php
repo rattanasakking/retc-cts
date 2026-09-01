@@ -170,6 +170,15 @@
                                             </a>
                                         </li>
                                         <li>
+                                            <a href="{{ route('reports.self-report-usage') }}" wire:navigate title="สถิติการใช้งานหน้าแจ้งข้อมูล"
+                                               class="{{ request()->routeIs('reports.self-report-usage') ? 'active bg-primary text-primary-content' : 'text-neutral-content/80 hover:bg-white/10' }}">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+                                                </svg>
+                                                <span x-show="!collapsed" x-transition.opacity>สถิติการใช้งาน</span>
+                                            </a>
+                                        </li>
+                                        <li>
                                             <a href="{{ route('reports.export') }}" wire:navigate title="ส่งออกรายงาน"
                                                class="{{ request()->routeIs('reports.export') ? 'active bg-primary text-primary-content' : 'text-neutral-content/80 hover:bg-white/10' }}">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">

@@ -5,6 +5,7 @@ namespace App\Livewire\Public;
 use App\Enums\CareerStatusType;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
+use App\Models\SelfReportEvent;
 use App\Models\Student;
 use App\Models\ThaiDistrict;
 use App\Models\ThaiProvince;
@@ -73,6 +74,10 @@ class CareerStatusSelfReport extends Component
     {
         $this->effective_date = now()->toDateString();
         $this->academic_year_id = AcademicYear::where('is_active', true)->value('id');
+
+        // mount() runs on the first page load only, not on every Livewire
+        // round trip — one visit is one visit.
+        SelfReportEvent::record(SelfReportEvent::VISIT);
     }
 
     public function updatingSearch(): void
@@ -109,12 +114,15 @@ class CareerStatusSelfReport extends Component
         // student record itself exists, only that name+birthdate matched.
         if (! $student || ! $student->birth_date || ! $student->birth_date->isSameDay($this->birthDateInput)) {
             $this->addError('birthDateInput', 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบชื่อและวันเดือนปีเกิดอีกครั้ง');
+            SelfReportEvent::record(SelfReportEvent::VERIFY_FAILED, $this->candidateId);
 
             return;
         }
 
         $this->verifiedStudentId = $student->id;
         $this->step = 'form';
+
+        SelfReportEvent::record(SelfReportEvent::VERIFY_SUCCESS, $student->id);
     }
 
     public function backToVerify(): void
@@ -287,6 +295,8 @@ class CareerStatusSelfReport extends Component
                 'notes' => $validated['notes'] ?? null,
             ]);
         });
+
+        SelfReportEvent::record(SelfReportEvent::SUBMITTED, $this->verifiedStudentId);
 
         $this->step = 'done';
     }

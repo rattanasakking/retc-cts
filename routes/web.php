@@ -9,6 +9,7 @@ use App\Livewire\Public\CareerStatusSelfReport;
 use App\Livewire\Public\StudentSearch;
 use App\Livewire\Reports\CareerStatusReport;
 use App\Livewire\Reports\ExportCenter;
+use App\Livewire\Reports\SelfReportUsage;
 use App\Livewire\Settings\AcademicYears as SettingsAcademicYears;
 use App\Livewire\Settings\Backup as SettingsBackup;
 use App\Livewire\Settings\SystemInformation as SettingsSystemInformation;
@@ -112,6 +113,7 @@ Route::get('/students/{student}', StudentsShow::class)
 
 Route::middleware(['auth', 'role:admin,executive,department_head'])->prefix('reports')->name('reports.')->group(function () {
     Route::get('/career-status', CareerStatusReport::class)->name('career-status');
+    Route::get('/self-report-usage', SelfReportUsage::class)->name('self-report-usage');
     Route::get('/export', ExportCenter::class)->name('export');
 });
 
