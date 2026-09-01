@@ -78,7 +78,7 @@
                 <form wire:submit="verify" class="space-y-4 mt-2">
                     <div>
                         <label class="label pb-1"><span class="label-text text-xs">วันเดือนปีเกิด *</span></label>
-                        <x-thai-date-input wire-model="birthDateInput" years-back="80" years-forward="0" />
+                        <x-thai-date-input wire-model="birthDateInput" years-back="80" years-forward="0" default-year="2550" />
                         @error('birthDateInput') <p class="text-xs text-error mt-1">{{ $message }}</p> @enderror
                     </div>
 

@@ -14,7 +14,7 @@ const THAI_MONTHS = [
 const THAI_WEEKDAYS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 
 document.addEventListener('alpine:init', () => {
-    Alpine.data('thaiDateInput', ($wire, prop, yearsBack, yearsForward) => ({
+    Alpine.data('thaiDateInput', ($wire, prop, defaultYear = null) => ({
         open: false,
         isoValue: $wire.entangle(prop),
         viewYear: null,
@@ -22,10 +22,21 @@ document.addEventListener('alpine:init', () => {
         thaiMonths: THAI_MONTHS,
         weekdayLabels: THAI_WEEKDAYS,
 
+        // defaultYear (AD) lets a field open on a year that suits it rather
+        // than on today — a birth-date picker starting at the current year
+        // means scrolling back two decades on every single entry.
         init() {
-            const base = this.isoValue ? this.parseIso(this.isoValue) : new Date();
-            this.viewYear = base.getFullYear();
-            this.viewMonth = base.getMonth();
+            if (this.isoValue) {
+                const base = this.parseIso(this.isoValue);
+                this.viewYear = base.getFullYear();
+                this.viewMonth = base.getMonth();
+
+                return;
+            }
+
+            const today = new Date();
+            this.viewYear = defaultYear ?? today.getFullYear();
+            this.viewMonth = defaultYear ? 0 : today.getMonth();
         },
 
         parseIso(iso) {
@@ -46,17 +57,6 @@ document.addEventListener('alpine:init', () => {
             const d = this.parseIso(this.isoValue);
 
             return `${this.pad(d.getDate())}/${this.pad(d.getMonth() + 1)}/${d.getFullYear() + 543}`;
-        },
-
-        get yearOptions() {
-            const current = new Date().getFullYear();
-            const years = [];
-
-            for (let y = current - yearsBack; y <= current + yearsForward; y++) {
-                years.push(y);
-            }
-
-            return years;
         },
 
         get calendarDays() {

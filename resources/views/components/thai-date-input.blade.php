@@ -1,6 +1,22 @@
-@props(['wireModel', 'yearsBack' => 10, 'yearsForward' => 2])
+@props(['wireModel', 'yearsBack' => 10, 'yearsForward' => 2, 'defaultYear' => null])
 
-<div x-data="thaiDateInput($wire, @js($wireModel), {{ (int) $yearsBack }}, {{ (int) $yearsForward }})" class="relative">
+@php
+    // The year <option>s are rendered server-side on purpose. Built with x-for
+    // instead, Alpine binds x-model to the <select> before the options exist,
+    // the browser finds no matching value and falls back to displaying the
+    // first one — so the picker showed พ.ศ. 2489 while the calendar underneath
+    // was really on the current year.
+    $currentYear = (int) now()->format('Y');
+    $firstYear = $currentYear - (int) $yearsBack;
+    $lastYear = $currentYear + (int) $yearsForward;
+
+    // defaultYear is given in พ.ศ.; the component works in ค.ศ. throughout.
+    $defaultYearAd = $defaultYear !== null
+        ? min(max((int) $defaultYear - 543, $firstYear), $lastYear)
+        : null;
+@endphp
+
+<div x-data="thaiDateInput($wire, @js($wireModel), {{ $defaultYearAd ?? 'null' }})" class="relative">
     <input
         type="text"
         readonly
@@ -22,9 +38,9 @@
             <div class="flex items-center gap-1 text-sm font-semibold">
                 <span x-text="thaiMonths[viewMonth]"></span>
                 <select x-model.number="viewYear" class="select select-ghost select-xs">
-                    <template x-for="y in yearOptions" :key="y">
-                        <option :value="y" x-text="y + 543"></option>
-                    </template>
+                    @for ($year = $firstYear; $year <= $lastYear; $year++)
+                        <option value="{{ $year }}">{{ $year + 543 }}</option>
+                    @endfor
                 </select>
             </div>
             <button type="button" @click="nextMonth()" class="btn btn-ghost btn-xs" aria-label="เดือนถัดไป">›</button>
