@@ -21,8 +21,14 @@ use App\Livewire\Students\Trash as StudentsTrash;
 use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Route;
 
+// Visitors land on the self-report form: almost everyone reaching this site
+// without an account is a graduate coming to report their own status, usually
+// from a link or a QR code, so that is the first thing they should see.
+// Staff who are already signed in still go straight to the dashboard.
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('public.student-search');
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('public.career-status-self-report');
 });
 
 // Served from the database rather than a static public/manifest.json so the
