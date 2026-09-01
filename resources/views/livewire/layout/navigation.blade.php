@@ -23,7 +23,7 @@ new class extends Component
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
         </label>
-        <a href="{{ route('dashboard') }}" wire:navigate class="font-bold text-lg lg:hidden truncate">RETC-CTS</a>
+        <a href="{{ route('dashboard') }}" wire:navigate class="font-bold text-lg lg:hidden truncate">{{ \App\Models\SystemSetting::cached()->displayShortName() }}</a>
     </div>
 
     <div class="flex-none flex items-center gap-1">

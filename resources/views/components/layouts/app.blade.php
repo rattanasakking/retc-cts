@@ -6,9 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ $title ?? 'RETC-CTS' }} | RETC Smart Career Tracking System</title>
-
-        <x-pwa-head />
+        <x-brand-head :title="$title" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
@@ -45,15 +43,20 @@
                     :class="collapsed ? 'lg:w-20' : 'lg:w-64'"
                 >
                     {{-- Brand --}}
+                    @php $branding = \App\Models\SystemSetting::cached(); @endphp
                     <div class="flex items-center gap-3 px-4 py-5 border-b border-white/10">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-content">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422A12.083 12.083 0 0112 20.055 12.083 12.083 0 015.84 10.578L12 14z" />
-                            </svg>
-                        </span>
+                        @if ($branding->logoUrl())
+                            <img src="{{ $branding->logoUrl() }}" alt="โลโก้{{ $branding->college_name ?: $branding->displayName() }}" class="h-9 w-9 shrink-0 rounded-lg object-cover bg-base-100">
+                        @else
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-content">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422A12.083 12.083 0 0112 20.055 12.083 12.083 0 015.84 10.578L12 14z" />
+                                </svg>
+                            </span>
+                        @endif
                         <div x-show="!collapsed" x-transition.opacity class="leading-tight overflow-hidden whitespace-nowrap">
-                            <p class="font-bold text-sm">RETC-CTS</p>
-                            <p class="text-xs text-neutral-content/60">Career Tracking System</p>
+                            <p class="font-bold text-sm truncate">{{ $branding->displayShortName() }}</p>
+                            <p class="text-xs text-neutral-content/60 truncate">{{ $branding->college_name ?: 'Career Tracking System' }}</p>
                         </div>
                     </div>
 

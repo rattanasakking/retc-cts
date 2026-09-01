@@ -18,11 +18,36 @@ use App\Livewire\Students\RecentlyUpdated as StudentsRecentlyUpdated;
 use App\Livewire\Students\Show as StudentsShow;
 use App\Livewire\Students\StudentImporter;
 use App\Livewire\Students\Trash as StudentsTrash;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return auth()->check() ? redirect()->route('dashboard') : redirect()->route('public.student-search');
 });
+
+// Served from the database rather than a static public/manifest.json so the
+// name a college sets in ตั้งค่าระบบ is what appears when the app is added to
+// a phone's home screen.
+Route::get('/manifest.webmanifest', function () {
+    $branding = SystemSetting::cached();
+
+    return response()->json([
+        'name' => $branding->displayName(),
+        'short_name' => $branding->displayShortName(),
+        'description' => 'ระบบติดตามภาวะการมีงานทำของผู้สำเร็จการศึกษา',
+        'start_url' => '/dashboard',
+        'scope' => '/',
+        'display' => 'standalone',
+        'orientation' => 'portrait-primary',
+        'background_color' => '#eef2f7',
+        'theme_color' => $branding->brandColor(),
+        'lang' => 'th',
+        'icons' => [
+            ['src' => '/icons/icon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any'],
+            ['src' => '/icons/icon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'maskable'],
+        ],
+    ])->header('Content-Type', 'application/manifest+json');
+})->name('pwa.manifest');
 
 Route::get('/search', StudentSearch::class)
     ->middleware('throttle:30,1')

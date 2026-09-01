@@ -6,23 +6,26 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ $title ?? 'ค้นหาข้อมูลนักศึกษา' }} | RETC Smart Career Tracking System</title>
-
-        <x-pwa-head />
+        <x-brand-head :title="$title ?? 'ค้นหาข้อมูลนักศึกษา'" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
     </head>
     <body class="min-h-screen bg-base-200 flex flex-col">
+        @php $branding = \App\Models\SystemSetting::cached(); @endphp
         <header class="navbar bg-base-100 border-b border-base-300 px-4 lg:px-8">
-            <div class="flex-1">
-                <a href="{{ route('public.student-search') }}" wire:navigate class="flex items-center gap-2 font-bold">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-content">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422A12.083 12.083 0 0112 20.055 12.083 12.083 0 015.84 10.578L12 14z" />
-                        </svg>
-                    </span>
-                    RETC-CTS
+            <div class="flex-1 min-w-0">
+                <a href="{{ route('public.student-search') }}" wire:navigate class="flex items-center gap-2 font-bold min-w-0">
+                    @if ($branding->logoUrl())
+                        <img src="{{ $branding->logoUrl() }}" alt="โลโก้{{ $branding->college_name ?: $branding->displayName() }}" class="h-8 w-8 shrink-0 rounded-lg object-cover">
+                    @else
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422A12.083 12.083 0 0112 20.055 12.083 12.083 0 015.84 10.578L12 14z" />
+                            </svg>
+                        </span>
+                    @endif
+                    <span class="truncate">{{ $branding->displayShortName() }}</span>
                 </a>
             </div>
             <div class="flex-none flex items-center gap-1">
@@ -49,8 +52,17 @@
             </div>
         </main>
 
-        <footer class="text-center text-xs text-base-content/50 py-6">
-            RETC Smart Career Tracking System
+        <footer class="text-center text-xs text-base-content/50 py-6 space-y-1 px-4">
+            <p>{{ $branding->college_name ? $branding->college_name.' — ' : '' }}{{ $branding->displayName() }}</p>
+            @if ($branding->contact_email || $branding->contact_phone)
+                <p>
+                    ติดต่อสอบถาม
+                    @if ($branding->contact_phone) โทร {{ $branding->contact_phone }} @endif
+                    @if ($branding->contact_email)
+                        <a href="mailto:{{ $branding->contact_email }}" class="link link-hover">{{ $branding->contact_email }}</a>
+                    @endif
+                </p>
+            @endif
         </footer>
 
         @livewireScripts

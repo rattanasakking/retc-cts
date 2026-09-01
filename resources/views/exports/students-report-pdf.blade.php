@@ -77,14 +77,19 @@
     </style>
 </head>
 <body>
+    @php $branding = \App\Models\SystemSetting::cached(); @endphp
+
     <header>
+        @if ($branding->college_name)
+            <p>{{ $branding->college_name }}</p>
+        @endif
         <h1>รายงานภาวะการมีงานทำ</h1>
         <p>{{ $filterSummary }}</p>
         <p>ออกรายงานเมื่อ {{ $generatedAt }}</p>
     </header>
 
     <footer>
-        หน้า <span class="page"></span> จาก <span class="topage"></span> — RETC Smart Career Tracking System
+        หน้า <span class="page"></span> จาก <span class="topage"></span> — {{ $branding->displayName() }}
     </footer>
 
     <table>
