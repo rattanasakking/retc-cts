@@ -133,9 +133,9 @@ class RecentlyUpdated extends Component
      * โดยนับทั้ง log ของตัวนักศึกษาเองและของภาวะการมีงานทำที่เป็นของเขา
      *
      * @param  array<int, int>  $studentIds
-     * @return array<int, AuditLog>
+     * @return array<int, array{name: string, detail: string, self_reported: bool}>
      */
-    private function latestAuditLogsFor(array $studentIds): array
+    private function latestEditorsFor(array $studentIds): array
     {
         if ($studentIds === []) {
             return [];
@@ -144,8 +144,11 @@ class RecentlyUpdated extends Component
         $studentType = (new Student)->getMorphClass();
         $careerType = (new CareerStatus)->getMorphClass();
 
-        // [career_status_id => student_id] เพื่อโยง log ของภาวะการมีงานทำกลับหานักศึกษา
-        $careerOwners = CareerStatus::whereIn('student_id', $studentIds)->pluck('student_id', 'id');
+        // เก็บ source มาด้วย เพราะ log ที่นักศึกษาแจ้งเองผ่านหน้าสาธารณะไม่มี
+        // user_id (ไม่ได้ล็อกอิน) แยกจาก log ที่ระบบเขียนเองไม่ได้ถ้าดูแค่ log
+        $careerStatuses = CareerStatus::whereIn('student_id', $studentIds)->get(['id', 'student_id', 'source']);
+        $careerOwners = $careerStatuses->pluck('student_id', 'id');
+        $careerSources = $careerStatuses->pluck('source', 'id');
 
         $logs = AuditLog::query()
             ->with('user')
@@ -165,13 +168,27 @@ class RecentlyUpdated extends Component
         $latest = [];
 
         foreach ($logs as $log) {
-            $studentId = $log->auditable_type === $studentType
-                ? $log->auditable_id
-                : ($careerOwners[$log->auditable_id] ?? null);
+            $isCareerLog = $log->auditable_type === $careerType;
 
-            if ($studentId && ! isset($latest[$studentId])) {
-                $latest[$studentId] = $log;
+            $studentId = $isCareerLog
+                ? ($careerOwners[$log->auditable_id] ?? null)
+                : $log->auditable_id;
+
+            if (! $studentId || isset($latest[$studentId])) {
+                continue;
             }
+
+            $selfReported = $isCareerLog
+                && ! $log->user
+                && ($careerSources[$log->auditable_id] ?? null) === 'self_report';
+
+            $latest[$studentId] = [
+                'name' => $selfReported ? 'นักศึกษาแจ้งด้วยตนเอง' : ($log->user?->name ?? 'ระบบ'),
+                'detail' => $selfReported
+                    ? 'ผ่านหน้าแจ้งข้อมูลด้วยตนเอง'
+                    : $log->action->label().' — '.$log->module,
+                'self_reported' => $selfReported,
+            ];
         }
 
         return $latest;
@@ -221,7 +238,7 @@ class RecentlyUpdated extends Component
             'students' => $students,
             'viewingStudent' => $viewingStudent,
             'academicYears' => AcademicYear::orderByDesc('year')->get(),
-            'latestLogs' => $this->latestAuditLogsFor($students->getCollection()->pluck('id')->all()),
+            'editors' => $this->latestEditorsFor($students->getCollection()->pluck('id')->all()),
             'updatedTodayCount' => $this->countUpdatedSince(now()->subDay()),
             'updatedThisWeekCount' => $this->countUpdatedSince(now()->subWeek()),
             'updatedThisMonthCount' => $this->countUpdatedSince(now()->subDays(30)),

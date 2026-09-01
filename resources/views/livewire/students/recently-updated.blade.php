@@ -96,7 +96,7 @@
                     @forelse ($students as $student)
                         @php
                             $fromCareer = $student->career_updated_at && $student->career_updated_at->gt($student->updated_at);
-                            $log = $latestLogs[$student->id] ?? null;
+                            $editor = $editors[$student->id] ?? null;
                         @endphp
                         <tr wire:key="recently-updated-row-{{ $student->id }}">
                             <td class="font-mono text-sm">
@@ -116,9 +116,9 @@
                                 </span>
                             </td>
                             <td class="text-sm">
-                                @if ($log)
-                                    <p>{{ $log->user?->name ?? 'ระบบ' }}</p>
-                                    <p class="text-xs text-base-content/50">{{ $log->action->label() }} — {{ $log->module }}</p>
+                                @if ($editor)
+                                    <p @class(['text-success font-medium' => $editor['self_reported']])>{{ $editor['name'] }}</p>
+                                    <p class="text-xs text-base-content/50">{{ $editor['detail'] }}</p>
                                 @else
                                     <span class="text-base-content/40">—</span>
                                 @endif
@@ -139,7 +139,7 @@
         @forelse ($students as $student)
             @php
                 $fromCareer = $student->career_updated_at && $student->career_updated_at->gt($student->updated_at);
-                $log = $latestLogs[$student->id] ?? null;
+                $editor = $editors[$student->id] ?? null;
             @endphp
             <div class="card bg-base-100 shadow" wire:key="recently-updated-card-{{ $student->id }}">
                 <div class="card-body p-4 gap-2">
@@ -158,8 +158,8 @@
                     </div>
                     <p class="text-xs text-base-content/50">
                         ปรับปรุง {{ $student->last_updated_at->format('d/m/').($student->last_updated_at->format('Y') + 543) }} {{ $student->last_updated_at->format('H:i') }}
-                        @if ($log)
-                            โดย {{ $log->user?->name ?? 'ระบบ' }}
+                        @if ($editor)
+                            โดย {{ $editor['name'] }}
                         @endif
                     </p>
                 </div>
@@ -178,7 +178,7 @@
         <div class="modal-box max-w-3xl p-0 overflow-hidden">
             @if ($viewingStudent)
                 @php
-                    $log = $latestLogs[$viewingStudent->id] ?? null;
+                    $editor = $editors[$viewingStudent->id] ?? null;
                     $current = $viewingStudent->careerStatuses->first();
                     $fromCareer = $viewingStudent->career_updated_at && $viewingStudent->career_updated_at->gt($viewingStudent->updated_at);
                 @endphp
@@ -210,7 +210,7 @@
                         <span class="text-xs text-neutral-content/60">
                             ปรับปรุงล่าสุด {{ $viewingStudent->last_updated_at->format('d/m/').($viewingStudent->last_updated_at->format('Y') + 543) }}
                             {{ $viewingStudent->last_updated_at->format('H:i') }} ({{ $viewingStudent->last_updated_human }})
-                            ที่{{ $fromCareer ? 'ภาวะการมีงานทำ' : 'ข้อมูลนักศึกษา' }}@if ($log) โดย {{ $log->user?->name ?? 'ระบบ' }}@endif
+                            ที่{{ $fromCareer ? 'ภาวะการมีงานทำ' : 'ข้อมูลนักศึกษา' }}@if ($editor) โดย {{ $editor['name'] }}@endif
                         </span>
                     </div>
                 </div>

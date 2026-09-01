@@ -144,6 +144,44 @@ class StudentRecentlyUpdatedTest extends TestCase
             ->assertDontSee('บริษัททดสอบ จำกัด');
     }
 
+    public function test_a_self_reported_career_status_is_credited_to_the_student(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $year = AcademicYear::factory()->create();
+        $student = $this->studentUpdatedAt($year, 'มานะ', now()->subDays(2)->toDateTimeString());
+
+        // ไม่มีใครล็อกอินตอนสร้าง เหมือนตอนนักศึกษากรอกผ่านหน้าสาธารณะ
+        CareerStatus::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'source' => 'self_report',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(RecentlyUpdated::class)
+            ->assertSee('นักศึกษาแจ้งด้วยตนเอง')
+            ->assertSee('ผ่านหน้าแจ้งข้อมูลด้วยตนเอง')
+            ->assertDontSee('ระบบ');
+    }
+
+    public function test_an_imported_career_status_is_still_credited_to_the_system(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $year = AcademicYear::factory()->create();
+        $student = $this->studentUpdatedAt($year, 'ปิติ', now()->subDays(2)->toDateTimeString());
+
+        CareerStatus::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'source' => 'imported',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(RecentlyUpdated::class)
+            ->assertSee('ระบบ')
+            ->assertDontSee('นักศึกษาแจ้งด้วยตนเอง');
+    }
+
     public function test_the_latest_editor_from_the_audit_log_is_shown(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin, 'name' => 'ผู้ดูแลระบบทดสอบ']);
