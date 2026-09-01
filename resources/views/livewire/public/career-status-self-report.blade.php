@@ -148,7 +148,17 @@
                                         {{ $status === 'entrepreneur' ? 'ชื่อกิจการ *' : 'ชื่อบริษัท *' }}
                                     </span>
                                 </label>
-                                <input type="text" wire:model="company_name" class="input input-bordered w-full">
+                                <input
+                                    type="text"
+                                    wire:model.blur="company_name"
+                                    list="self-report-company-suggestions"
+                                    class="input input-bordered w-full"
+                                >
+                                <datalist id="self-report-company-suggestions">
+                                    @foreach ($companySuggestions as $suggestion)
+                                        <option value="{{ $suggestion }}"></option>
+                                    @endforeach
+                                </datalist>
                                 @error('company_name') <p class="text-xs text-error mt-1">{{ $message }}</p> @enderror
                             </div>
 
@@ -192,7 +202,7 @@
                                 <label class="label pb-1"><span class="label-text text-xs">ชื่อสถานศึกษาต่อ *</span></label>
                                 <input
                                     type="text"
-                                    wire:model="institution_name"
+                                    wire:model.blur="institution_name"
                                     list="self-report-institution-suggestions"
                                     class="input input-bordered w-full"
                                     placeholder="เช่น มหาวิทยาลัยเทคโนโลยีราชมงคล..."
@@ -213,6 +223,14 @@
                                 <p class="text-xs font-semibold text-base-content/60">
                                     {{ $status === 'further_study' ? 'ที่ตั้งสถานศึกษาต่อ' : 'ที่ตั้งสถานที่ทำงาน' }}
                                 </p>
+                                @if ($autofilledLocationFor !== '')
+                                    <p class="text-xs text-success mt-1 flex items-start gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span>กรอกที่ตั้งให้อัตโนมัติจากข้อมูลเดิมของ "{{ $autofilledLocationFor }}" — แก้ไขได้ถ้าไม่ตรง</span>
+                                    </p>
+                                @endif
                             </div>
 
                             <div>

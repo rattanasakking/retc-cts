@@ -66,6 +66,9 @@ class CareerStatusSelfReport extends Component
 
     public string $notes = '';
 
+    /** ชื่อสถานที่ที่ระบบดึงที่ตั้งมาให้อัตโนมัติ (ว่าง = ไม่ได้ดึงให้) */
+    public string $autofilledLocationFor = '';
+
     public function mount(): void
     {
         $this->effective_date = now()->toDateString();
@@ -149,11 +152,62 @@ class CareerStatusSelfReport extends Component
         if (! $this->isFurtherStudy()) {
             $this->institution_name = '';
         }
+
+        $this->autofilledLocationFor = '';
     }
 
     public function updatedWorkProvinceId(): void
     {
         $this->reset(['work_district_id', 'work_subdistrict_id']);
+        $this->autofilledLocationFor = '';
+    }
+
+    public function updatedInstitutionName(): void
+    {
+        $this->applyKnownLocation($this->institution_name, 'institution_name');
+    }
+
+    public function updatedCompanyName(): void
+    {
+        $this->applyKnownLocation($this->company_name, 'company_name');
+    }
+
+    /**
+     * เติมที่ตั้งให้อัตโนมัติเมื่อชื่อสถานที่ที่กรอกตรงกับที่เคยมีในระบบแล้ว —
+     * สถานศึกษาและบริษัทเดิมถูกกรอกซ้ำกันเป็นสิบ ๆ ครั้ง คนกรอกจึงไม่ต้องไล่
+     * เลือกจังหวัด/อำเภอ/ตำบลใหม่ทุกรอบ
+     *
+     * ไม่เขียนทับสิ่งที่ผู้ใช้เลือกเอง (ถ้าเลือกจังหวัดไว้แล้วจะไม่ยุ่ง) และค่า
+     * ที่เติมให้แก้ไขได้ตามปกติ เผื่อสาขาของที่เดียวกันอยู่คนละจังหวัด
+     */
+    private function applyKnownLocation(string $name, string $column): void
+    {
+        $name = trim($name);
+        $this->autofilledLocationFor = '';
+
+        if ($name === '' || $this->work_province_id) {
+            return;
+        }
+
+        $match = CareerStatus::query()
+            ->where($column, $name)
+            ->whereNotNull('work_province_id')
+            ->latest('id')
+            ->first();
+
+        if (! $match) {
+            return;
+        }
+
+        $this->work_province_id = $match->work_province_id;
+        $this->work_district_id = $match->work_district_id;
+        $this->work_subdistrict_id = $match->work_subdistrict_id;
+
+        if ($column === 'company_name' && trim($this->work_location) === '' && $match->work_location) {
+            $this->work_location = $match->work_location;
+        }
+
+        $this->autofilledLocationFor = $name;
     }
 
     public function updatedWorkDistrictId(): void
@@ -270,6 +324,13 @@ class CareerStatusSelfReport extends Component
                     ->orderBy('institution_name')
                     ->limit(200)
                     ->pluck('institution_name')
+                : collect(),
+            'companySuggestions' => $this->isWorkingStatus()
+                ? CareerStatus::whereNotNull('company_name')
+                    ->distinct()
+                    ->orderBy('company_name')
+                    ->limit(200)
+                    ->pluck('company_name')
                 : collect(),
             'provinces' => ThaiProvince::orderBy('name_th')->get(),
             'districts' => $this->work_province_id

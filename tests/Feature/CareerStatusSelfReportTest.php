@@ -6,7 +6,11 @@ use App\Livewire\Public\CareerStatusSelfReport;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
 use App\Models\Student;
+use App\Models\ThaiDistrict;
+use App\Models\ThaiProvince;
+use App\Models\ThaiSubdistrict;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -120,6 +124,102 @@ class CareerStatusSelfReportTest extends TestCase
             'source' => 'self_report',
             'is_current' => 1,
         ]);
+    }
+
+    /**
+     * @return array{province: ThaiProvince, district: ThaiDistrict, subdistrict: ThaiSubdistrict}
+     */
+    private function seedGeography(): array
+    {
+        $province = ThaiProvince::create(['id' => 45, 'name_th' => 'ร้อยเอ็ด', 'lat' => 16.05, 'lng' => 103.65]);
+        $district = ThaiDistrict::create(['id' => 4501, 'name_th' => 'เมืองร้อยเอ็ด', 'province_id' => $province->id]);
+        $subdistrict = ThaiSubdistrict::create(['id' => 450101, 'name_th' => 'ในเมือง', 'district_id' => $district->id]);
+
+        return compact('province', 'district', 'subdistrict');
+    }
+
+    private function verifiedComponent(): Testable
+    {
+        $year = AcademicYear::factory()->create(['is_active' => true]);
+        $student = Student::factory()->create(['academic_year_id' => $year->id, 'birth_date' => '2007-10-02']);
+
+        return Livewire::test(CareerStatusSelfReport::class)
+            ->call('selectCandidate', $student->id)
+            ->set('birthDateInput', '2007-10-02')
+            ->call('verify');
+    }
+
+    public function test_a_known_institution_fills_in_its_location_automatically(): void
+    {
+        ['province' => $province, 'district' => $district, 'subdistrict' => $subdistrict] = $this->seedGeography();
+
+        CareerStatus::factory()->create([
+            'status' => 'further_study',
+            'institution_name' => 'วิทยาลัยเทคนิคร้อยเอ็ด',
+            'work_province_id' => $province->id,
+            'work_district_id' => $district->id,
+            'work_subdistrict_id' => $subdistrict->id,
+        ]);
+
+        $this->verifiedComponent()
+            ->set('status', 'further_study')
+            ->set('institution_name', 'วิทยาลัยเทคนิคร้อยเอ็ด')
+            ->assertSet('work_province_id', $province->id)
+            ->assertSet('work_district_id', $district->id)
+            ->assertSet('work_subdistrict_id', $subdistrict->id)
+            ->assertSee('กรอกที่ตั้งให้อัตโนมัติ');
+    }
+
+    public function test_a_known_company_fills_in_its_location_and_address(): void
+    {
+        ['province' => $province, 'district' => $district] = $this->seedGeography();
+
+        CareerStatus::factory()->create([
+            'status' => 'employed',
+            'company_name' => 'บริษัท ทดสอบ จำกัด',
+            'work_location' => '99 ถนนเทวาภิบาล',
+            'work_province_id' => $province->id,
+            'work_district_id' => $district->id,
+            'work_subdistrict_id' => null,
+        ]);
+
+        $this->verifiedComponent()
+            ->set('status', 'employed')
+            ->set('company_name', 'บริษัท ทดสอบ จำกัด')
+            ->assertSet('work_province_id', $province->id)
+            ->assertSet('work_district_id', $district->id)
+            ->assertSet('work_location', '99 ถนนเทวาภิบาล');
+    }
+
+    public function test_a_location_the_student_already_chose_is_never_overwritten(): void
+    {
+        ['province' => $province, 'district' => $district] = $this->seedGeography();
+        $otherProvince = ThaiProvince::create(['id' => 40, 'name_th' => 'ขอนแก่น']);
+
+        CareerStatus::factory()->create([
+            'status' => 'further_study',
+            'institution_name' => 'วิทยาลัยเทคนิคร้อยเอ็ด',
+            'work_province_id' => $province->id,
+            'work_district_id' => $district->id,
+        ]);
+
+        $this->verifiedComponent()
+            ->set('status', 'further_study')
+            ->set('work_province_id', $otherProvince->id)
+            ->set('institution_name', 'วิทยาลัยเทคนิคร้อยเอ็ด')
+            ->assertSet('work_province_id', $otherProvince->id)
+            ->assertDontSee('กรอกที่ตั้งให้อัตโนมัติ');
+    }
+
+    public function test_an_unknown_place_leaves_the_location_alone(): void
+    {
+        $this->seedGeography();
+
+        $this->verifiedComponent()
+            ->set('status', 'further_study')
+            ->set('institution_name', 'สถานศึกษาที่ยังไม่เคยมีใครกรอก')
+            ->assertSet('work_province_id', null)
+            ->assertDontSee('กรอกที่ตั้งให้อัตโนมัติ');
     }
 
     public function test_further_study_requires_an_institution_name(): void
