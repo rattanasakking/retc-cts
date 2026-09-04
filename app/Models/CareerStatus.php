@@ -31,6 +31,8 @@ class CareerStatus extends Model
         'is_current',
         'verified_by',
         'notes',
+        'vcop_recorded_at',
+        'vcop_recorded_by',
     ];
 
     protected function casts(): array
@@ -40,6 +42,7 @@ class CareerStatus extends Model
             'is_related_to_major' => 'boolean',
             'effective_date' => 'date',
             'is_current' => 'boolean',
+            'vcop_recorded_at' => 'datetime',
             'status' => CareerStatusType::class,
         ];
     }
@@ -57,6 +60,12 @@ class CareerStatus extends Model
     public function verifiedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    /** เจ้าหน้าที่ที่ทำเครื่องหมายว่านำข้อมูลนี้ไปบันทึกใน V-COP แล้ว */
+    public function vcopRecordedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'vcop_recorded_by');
     }
 
     public function workProvince(): BelongsTo

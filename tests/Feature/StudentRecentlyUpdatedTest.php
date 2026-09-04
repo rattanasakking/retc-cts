@@ -197,4 +197,122 @@ class StudentRecentlyUpdatedTest extends TestCase
             ->assertSee('ผู้ดูแลระบบทดสอบ')
             ->assertSee('แก้ไขข้อมูล');
     }
+
+    public function test_staff_can_mark_a_student_as_recorded_in_vcop(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin, 'name' => 'เจ้าหน้าที่ทดสอบ']);
+        $year = AcademicYear::factory()->create();
+        $student = $this->studentUpdatedAt($year, 'มานะ', now()->subHour()->toDateTimeString());
+
+        $career = CareerStatus::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'is_current' => true,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(RecentlyUpdated::class)
+            ->assertSee('บันทึก V-COP แล้ว')
+            ->call('markVcop', $student->id)
+            ->assertSee('บันทึก V-COP แล้ว')
+            ->assertSee('เจ้าหน้าที่ทดสอบ');
+
+        $career->refresh();
+        $this->assertNotNull($career->vcop_recorded_at);
+        $this->assertSame($admin->id, $career->vcop_recorded_by);
+    }
+
+    public function test_marking_can_be_undone(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $year = AcademicYear::factory()->create();
+        $student = $this->studentUpdatedAt($year, 'มานะ', now()->subHour()->toDateTimeString());
+
+        $career = CareerStatus::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'is_current' => true,
+            'vcop_recorded_at' => now(),
+            'vcop_recorded_by' => $admin->id,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(RecentlyUpdated::class)
+            ->call('unmarkVcop', $student->id);
+
+        $career->refresh();
+        $this->assertNull($career->vcop_recorded_at);
+        $this->assertNull($career->vcop_recorded_by);
+    }
+
+    public function test_a_newer_report_from_the_student_needs_recording_again(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $year = AcademicYear::factory()->create();
+        $student = $this->studentUpdatedAt($year, 'มานะ', now()->subDays(3)->toDateTimeString());
+
+        // รอบแรก: คีย์เข้า V-COP แล้ว
+        $first = CareerStatus::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'is_current' => false,
+            'vcop_recorded_at' => now()->subDays(2),
+            'vcop_recorded_by' => $admin->id,
+        ]);
+
+        // นักศึกษาแจ้งข้อมูลใหม่ทับ — ข้อมูลชุดใหม่ยังไม่ได้คีี่ย์
+        CareerStatus::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'is_current' => true,
+        ]);
+
+        $status = Livewire::actingAs($admin)
+            ->test(RecentlyUpdated::class)
+            ->viewData('vcopStatus');
+
+        $this->assertSame('pending', $status[$student->id]['state']);
+        $this->assertNotNull($first->fresh()->vcop_recorded_at); // ของเดิมไม่ถูกแตะ
+    }
+
+    public function test_the_vcop_filter_separates_the_queue_from_the_finished_ones(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $year = AcademicYear::factory()->create();
+
+        $pending = $this->studentUpdatedAt($year, 'ยังไม่คีย์', now()->subHour()->toDateTimeString());
+        CareerStatus::factory()->create(['student_id' => $pending->id, 'academic_year_id' => $year->id, 'is_current' => true]);
+
+        $done = $this->studentUpdatedAt($year, 'คีย์แล้ว', now()->subHour()->toDateTimeString());
+        CareerStatus::factory()->create([
+            'student_id' => $done->id,
+            'academic_year_id' => $year->id,
+            'is_current' => true,
+            'vcop_recorded_at' => now(),
+            'vcop_recorded_by' => $admin->id,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(RecentlyUpdated::class)
+            ->set('filterVcop', 'pending')
+            ->assertSee('ยังไม่คีย์')
+            ->assertDontSee('คีย์แล้ว')
+            ->set('filterVcop', 'done')
+            ->assertSee('คีย์แล้ว')
+            ->assertDontSee('ยังไม่คีย์');
+    }
+
+    public function test_an_executive_can_see_the_status_but_not_change_it(): void
+    {
+        $executive = User::factory()->create(['role' => UserRole::Executive]);
+        $year = AcademicYear::factory()->create();
+        $student = $this->studentUpdatedAt($year, 'มานะ', now()->subHour()->toDateTimeString());
+        CareerStatus::factory()->create(['student_id' => $student->id, 'academic_year_id' => $year->id, 'is_current' => true]);
+
+        Livewire::actingAs($executive)
+            ->test(RecentlyUpdated::class)
+            ->assertSee('ยังไม่ได้บันทึก')
+            ->call('markVcop', $student->id)
+            ->assertForbidden();
+    }
 }

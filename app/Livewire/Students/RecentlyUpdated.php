@@ -2,10 +2,12 @@
 
 namespace App\Livewire\Students;
 
+use App\Enums\UserRole;
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\CareerStatus;
 use App\Models\Student;
+use App\Support\AuditLogger;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Layout;
@@ -25,6 +27,9 @@ class RecentlyUpdated extends Component
 
     /** '' = ทุกแหล่ง, 'student' = แก้ที่ประวัตินักศึกษา, 'career_status' = แก้ที่ภาวะการมีงานทำ */
     public string $filterSource = '';
+
+    /** '' = ทุกสถานะ, 'pending' = ยังไม่ได้บันทึกใน V-COP, 'done' = บันทึกแล้ว */
+    public string $filterVcop = '';
 
     /** ย้อนหลังกี่วัน (0 = ไม่จำกัดช่วงเวลา) */
     public int $days = 30;
@@ -59,6 +64,11 @@ class RecentlyUpdated extends Component
         $this->resetPage();
     }
 
+    public function updatingFilterVcop(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatingDays(): void
     {
         $this->resetPage();
@@ -66,8 +76,72 @@ class RecentlyUpdated extends Component
 
     public function resetFilters(): void
     {
-        $this->reset('search', 'filterAcademicYearId', 'filterSource', 'days');
+        $this->reset('search', 'filterAcademicYearId', 'filterSource', 'filterVcop', 'days');
         $this->resetPage();
+    }
+
+    /**
+     * ทำเครื่องหมายว่านำภาวะการมีงานทำล่าสุดของนักศึกษาคนนี้ไปบันทึกใน V-COP แล้ว
+     *
+     * ทำเครื่องหมายทุกรายการที่เป็นข้อมูลปัจจุบัน (is_current) ของนักศึกษาคนนั้น
+     * พร้อมกัน — เจ้าหน้าที่คีย์ข้อมูลของคนหนึ่งเข้า V-COP รอบเดียวจบ ไม่ได้คีย์
+     * แยกรายปีการศึกษา
+     */
+    public function markVcop(int $studentId): void
+    {
+        $this->authorizeVcop();
+
+        $student = Student::findOrFail($studentId);
+
+        $marked = $student->careerStatuses()
+            ->where('is_current', true)
+            ->whereNull('vcop_recorded_at')
+            ->update([
+                'vcop_recorded_at' => now(),
+                'vcop_recorded_by' => auth()->id(),
+            ]);
+
+        if ($marked > 0) {
+            AuditLogger::log(
+                action: 'update',
+                module: 'ภาวะการมีงานทำ',
+                auditable: $student,
+                description: "ทำเครื่องหมายว่าบันทึกข้อมูลของ {$student->first_name} {$student->last_name} ({$student->student_code}) ลงระบบ V-COP แล้ว",
+            );
+        }
+    }
+
+    public function unmarkVcop(int $studentId): void
+    {
+        $this->authorizeVcop();
+
+        $student = Student::findOrFail($studentId);
+
+        $unmarked = $student->careerStatuses()
+            ->where('is_current', true)
+            ->whereNotNull('vcop_recorded_at')
+            ->update([
+                'vcop_recorded_at' => null,
+                'vcop_recorded_by' => null,
+            ]);
+
+        if ($unmarked > 0) {
+            AuditLogger::log(
+                action: 'update',
+                module: 'ภาวะการมีงานทำ',
+                auditable: $student,
+                description: "ยกเลิกเครื่องหมายบันทึก V-COP ของ {$student->first_name} {$student->last_name} ({$student->student_code})",
+            );
+        }
+    }
+
+    /** ผู้บริหารดูได้อย่างเดียว คนที่คีย์ข้อมูลเข้า V-COP จริงคือกลุ่มนี้ */
+    private function authorizeVcop(): void
+    {
+        abort_unless(
+            auth()->user()->hasRole(UserRole::Admin, UserRole::Teacher, UserRole::DepartmentHead),
+            403
+        );
     }
 
     /**
@@ -118,6 +192,24 @@ class RecentlyUpdated extends Component
             ->when(
                 $this->filterSource === 'student',
                 fn ($query) => $query->whereRaw("({$career} is null or students.updated_at >= {$career})")
+            )
+            // ยังไม่บันทึก = มีภาวะการมีงานทำปัจจุบันที่ยังไม่ถูกทำเครื่องหมายอยู่อย่างน้อยหนึ่งรายการ
+            ->when(
+                $this->filterVcop === 'pending',
+                fn ($query) => $query->whereHas(
+                    'careerStatuses',
+                    fn ($q) => $q->where('is_current', true)->whereNull('vcop_recorded_at')
+                )
+            )
+            // บันทึกแล้ว = มีข้อมูลให้บันทึก และไม่เหลือรายการที่ค้างอยู่เลย
+            ->when(
+                $this->filterVcop === 'done',
+                fn ($query) => $query
+                    ->whereHas('careerStatuses', fn ($q) => $q->where('is_current', true))
+                    ->whereDoesntHave(
+                        'careerStatuses',
+                        fn ($q) => $q->where('is_current', true)->whereNull('vcop_recorded_at')
+                    )
             );
     }
 
@@ -211,6 +303,41 @@ class RecentlyUpdated extends Component
         };
     }
 
+    /**
+     * สถานะการบันทึกลง V-COP ของนักศึกษาแต่ละคนในหน้านี้ ดึงเป็นก้อนเดียว
+     *
+     * @param  array<int, int>  $studentIds
+     * @return array<int, array{state: string, at: ?Carbon, by: ?string}>
+     *                                                                    state: 'none' ยังไม่มีข้อมูลให้บันทึก | 'pending' ยังไม่ได้บันทึก | 'done' บันทึกแล้ว
+     */
+    private function vcopStatusFor(array $studentIds): array
+    {
+        if ($studentIds === []) {
+            return [];
+        }
+
+        $rows = CareerStatus::query()
+            ->with('vcopRecordedBy')
+            ->whereIn('student_id', $studentIds)
+            ->where('is_current', true)
+            ->get(['id', 'student_id', 'vcop_recorded_at', 'vcop_recorded_by']);
+
+        $status = [];
+
+        foreach ($rows->groupBy('student_id') as $studentId => $statuses) {
+            $pending = $statuses->whereNull('vcop_recorded_at');
+            $latestDone = $statuses->whereNotNull('vcop_recorded_at')->sortByDesc('vcop_recorded_at')->first();
+
+            $status[$studentId] = [
+                'state' => $pending->isNotEmpty() ? 'pending' : 'done',
+                'at' => $latestDone?->vcop_recorded_at,
+                'by' => $latestDone?->vcopRecordedBy?->name,
+            ];
+        }
+
+        return $status;
+    }
+
     public function render()
     {
         $students = $this->baseQuery()
@@ -239,6 +366,8 @@ class RecentlyUpdated extends Component
             'viewingStudent' => $viewingStudent,
             'academicYears' => AcademicYear::orderByDesc('year')->get(),
             'editors' => $this->latestEditorsFor($students->getCollection()->pluck('id')->all()),
+            'vcopStatus' => $this->vcopStatusFor($students->getCollection()->pluck('id')->all()),
+            'canMarkVcop' => auth()->user()->hasRole(UserRole::Admin, UserRole::Teacher, UserRole::DepartmentHead),
             'updatedTodayCount' => $this->countUpdatedSince(now()->subDay()),
             'updatedThisWeekCount' => $this->countUpdatedSince(now()->subWeek()),
             'updatedThisMonthCount' => $this->countUpdatedSince(now()->subDays(30)),

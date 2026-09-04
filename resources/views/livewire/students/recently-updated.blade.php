@@ -37,7 +37,7 @@
     {{-- Search & filters --}}
     <div class="card bg-base-100 shadow">
         <div class="card-body p-4">
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <label class="input input-bordered flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -70,9 +70,15 @@
                     <option value="student">ข้อมูลนักศึกษา</option>
                     <option value="career_status">ภาวะการมีงานทำ</option>
                 </select>
+
+                <select wire:model.live="filterVcop" class="select select-bordered">
+                    <option value="">V-COP: ทุกสถานะ</option>
+                    <option value="pending">V-COP: ยังไม่ได้บันทึก</option>
+                    <option value="done">V-COP: บันทึกแล้ว</option>
+                </select>
             </div>
 
-            @if ($search || $filterAcademicYearId || $filterSource || $days !== 30)
+            @if ($search || $filterAcademicYearId || $filterSource || $filterVcop || $days !== 30)
                 <button type="button" wire:click="resetFilters" class="btn btn-ghost btn-xs mt-2 w-fit">ล้างตัวกรองทั้งหมด</button>
             @endif
         </div>
@@ -90,6 +96,7 @@
                         <th>ปรับปรุงล่าสุด</th>
                         <th>ประเภท</th>
                         <th>ผู้แก้ไขล่าสุด</th>
+                        <th class="text-right">V-COP</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -97,6 +104,7 @@
                         @php
                             $fromCareer = $student->career_updated_at && $student->career_updated_at->gt($student->updated_at);
                             $editor = $editors[$student->id] ?? null;
+                            $vcop = $vcopStatus[$student->id] ?? null;
                         @endphp
                         <tr wire:key="recently-updated-row-{{ $student->id }}">
                             <td class="font-mono text-sm">
@@ -123,10 +131,13 @@
                                     <span class="text-base-content/40">—</span>
                                 @endif
                             </td>
+                            <td class="text-right whitespace-nowrap">
+                                <x-vcop-mark :student="$student" :status="$vcop" :can-mark="$canMarkVcop" />
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-base-content/60 py-8">ไม่พบข้อมูลนักศึกษาที่ปรับปรุงในช่วงเวลาที่เลือก</td>
+                            <td colspan="7" class="text-center text-base-content/60 py-8">ไม่พบข้อมูลนักศึกษาที่ปรับปรุงในช่วงเวลาที่เลือก</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -140,6 +151,7 @@
             @php
                 $fromCareer = $student->career_updated_at && $student->career_updated_at->gt($student->updated_at);
                 $editor = $editors[$student->id] ?? null;
+                $vcop = $vcopStatus[$student->id] ?? null;
             @endphp
             <div class="card bg-base-100 shadow" wire:key="recently-updated-card-{{ $student->id }}">
                 <div class="card-body p-4 gap-2">
@@ -162,6 +174,9 @@
                             โดย {{ $editor['name'] }}
                         @endif
                     </p>
+                    <div class="pt-2 border-t border-base-200">
+                        <x-vcop-mark :student="$student" :status="$vcop" :can-mark="$canMarkVcop" block />
+                    </div>
                 </div>
             </div>
         @empty
@@ -179,6 +194,7 @@
             @if ($viewingStudent)
                 @php
                     $editor = $editors[$viewingStudent->id] ?? null;
+                    $vcop = $vcopStatus[$viewingStudent->id] ?? null;
                     $current = $viewingStudent->careerStatuses->first();
                     $fromCareer = $viewingStudent->career_updated_at && $viewingStudent->career_updated_at->gt($viewingStudent->updated_at);
                 @endphp
@@ -321,7 +337,11 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-base-300 flex justify-end gap-2">
+                <div class="px-6 py-4 border-t border-base-300 flex items-center justify-between gap-3 flex-wrap">
+                    <div class="text-sm">
+                        <x-vcop-mark :student="$viewingStudent" :status="$vcop" :can-mark="$canMarkVcop" block />
+                    </div>
+                    <div class="flex gap-2 ml-auto">
                     <button type="button" wire:click="closeDetail" class="btn btn-ghost btn-sm">ปิด</button>
                     <a href="{{ route('students.show', $viewingStudent) }}" wire:navigate class="btn btn-primary btn-sm gap-2">
                         ดูข้อมูลเต็ม
@@ -329,6 +349,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                         </svg>
                     </a>
+                    </div>
                 </div>
             @endif
         </div>
