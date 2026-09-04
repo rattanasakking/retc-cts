@@ -8,6 +8,10 @@
 
 <title>{{ $title ? $title.' | ' : '' }}{{ $branding->displayName() }}</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap">
+
 @if ($branding->primary_color)
     {{-- daisyUI reads these custom properties at runtime, so the brand colour
          can change without rebuilding the stylesheet. --}}

@@ -45,33 +45,33 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <div class="card bg-base-100 shadow">
             <div class="card-body p-4 gap-1">
-                <p class="text-2xl font-bold tabular-nums leading-tight">{{ number_format($stats['graduates']) }}</p>
+                <p class="kpi">{{ number_format($stats['graduates']) }}</p>
                 <p class="text-xs text-base-content/60">ผู้สำเร็จการศึกษา</p>
             </div>
         </div>
         <div class="card bg-base-100 shadow">
             <div class="card-body p-4 gap-1">
-                <p class="text-2xl font-bold tabular-nums leading-tight text-secondary">{{ number_format($stats['respondents']) }}</p>
+                <p class="kpi text-secondary">{{ number_format($stats['respondents']) }}</p>
                 <p class="text-xs text-base-content/60">ผู้ตอบแบบสอบถาม</p>
                 <p class="text-xs text-secondary font-medium">{{ $rates['response'] }}%</p>
             </div>
         </div>
         <div class="card bg-base-100 shadow">
             <div class="card-body p-4 gap-1">
-                <p class="text-2xl font-bold tabular-nums leading-tight text-primary">{{ number_format($stats['employed']) }}</p>
+                <p class="kpi text-primary">{{ number_format($stats['employed']) }}</p>
                 <p class="text-xs text-base-content/60">มีงานทำ</p>
                 <p class="text-xs text-primary font-medium">{{ $rates['employed'] }}%</p>
             </div>
         </div>
         <div class="card bg-base-100 shadow">
             <div class="card-body p-4 gap-1">
-                <p class="text-2xl font-bold tabular-nums leading-tight text-accent">{{ number_format($stats['further_study']) }}</p>
+                <p class="kpi text-accent">{{ number_format($stats['further_study']) }}</p>
                 <p class="text-xs text-base-content/60">ศึกษาต่อ</p>
             </div>
         </div>
         <div class="card bg-base-100 shadow">
             <div class="card-body p-4 gap-1">
-                <p class="text-2xl font-bold tabular-nums leading-tight text-error">{{ number_format($stats['unemployed']) }}</p>
+                <p class="kpi text-error">{{ number_format($stats['unemployed']) }}</p>
                 <p class="text-xs text-base-content/60">ว่างงาน</p>
             </div>
         </div>
@@ -268,9 +268,9 @@
                 data: {
                     labels: payload.labels,
                     datasets: [
-                        { label: 'มีงานทำ', data: payload.employed, backgroundColor: '#2563a8' },
+                        { label: 'มีงานทำ', data: payload.employed, backgroundColor: '#00e5ff' },
                         { label: 'ว่างงาน', data: payload.unemployed, backgroundColor: '#b5484a' },
-                        { label: 'ศึกษาต่อ', data: payload.further_study, backgroundColor: '#4fb3a0' },
+                        { label: 'ศึกษาต่อ', data: payload.further_study, backgroundColor: '#32d74b' },
                     ],
                 },
                 options: {
@@ -295,16 +295,16 @@
                         {
                             label: 'อัตราการตอบแบบสอบถาม (%)',
                             data: payload.response_rate,
-                            borderColor: '#2563a8',
-                            backgroundColor: '#2563a81a',
+                            borderColor: '#00e5ff',
+                            backgroundColor: '#00e5ff26',
                             tension: 0.35,
                             fill: true,
                         },
                         {
                             label: 'อัตราการมีงานทำ (%)',
                             data: payload.employed_rate,
-                            borderColor: '#4fb3a0',
-                            backgroundColor: '#4fb3a01a',
+                            borderColor: '#32d74b',
+                            backgroundColor: '#32d74b26',
                             tension: 0.35,
                             fill: true,
                         },
@@ -327,8 +327,8 @@
         init(el) {
             this.map = L.map(el, { scrollWheelZoom: false }).setView([13.7563, 100.5018], 6);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors',
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
                 maxZoom: 18,
             }).addTo(this.map);
 
@@ -337,7 +337,7 @@
 
             payload.forEach((p) => {
                 const radius = 8 + (p.total / maxTotal) * 22;
-                const color = p.employed >= p.further_study ? '#2563a8' : '#4fb3a0';
+                const color = p.employed >= p.further_study ? '#00e5ff' : '#32d74b';
 
                 L.circleMarker([p.lat, p.lng], {
                     radius,

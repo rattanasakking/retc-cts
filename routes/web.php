@@ -46,7 +46,7 @@ Route::get('/manifest.webmanifest', function () {
         'scope' => '/',
         'display' => 'standalone',
         'orientation' => 'portrait-primary',
-        'background_color' => '#eef2f7',
+        'background_color' => '#121212',
         'theme_color' => $branding->brandColor(),
         'lang' => 'th',
         'icons' => [

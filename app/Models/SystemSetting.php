@@ -73,7 +73,7 @@ class SystemSetting extends Model
 
     public function brandColor(): string
     {
-        return $this->primary_color ?: '#2563a8';
+        return $this->primary_color ?: '#00e5ff';
     }
 
     /**
@@ -83,7 +83,7 @@ class SystemSetting extends Model
      */
     public function brandContentColor(): string
     {
-        [$r, $g, $b] = sscanf($this->brandColor(), '#%02x%02x%02x') ?: [37, 99, 168];
+        [$r, $g, $b] = sscanf($this->brandColor(), '#%02x%02x%02x') ?: [0, 229, 255];
 
         $luminance = (0.2126 * $r + 0.7152 * $g + 0.0722 * $b) / 255;
 

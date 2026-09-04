@@ -6,7 +6,6 @@ use App\Enums\CareerStatusType;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
 use App\Models\Student;
-use App\Models\ThaiProvince;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -198,12 +197,12 @@ class Dashboard extends Component
             ],
             'statusChart' => [
                 'labels' => ['มีงานทำ', 'ว่างงาน', 'ศึกษาต่อ', 'อื่นๆ'],
-                'colors' => ['#2563a8', '#b5484a', '#4fb3a0', '#8b98a5'],
+                'colors' => ['#00e5ff', '#ff453a', '#32d74b', '#98989d'],
                 'data' => [$employed, $unemployed, $furtherStudy, $other],
             ],
             'relatedChart' => [
                 'labels' => ['ตรงสาย', 'ไม่ตรงสาย'],
-                'colors' => ['#2563a8', '#a67c1f'],
+                'colors' => ['#00e5ff', '#ffd60a'],
                 'data' => [$relatedYes, $relatedNo],
             ],
             'departmentChart' => [
