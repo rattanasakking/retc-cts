@@ -197,12 +197,12 @@ class Dashboard extends Component
             ],
             'statusChart' => [
                 'labels' => ['มีงานทำ', 'ว่างงาน', 'ศึกษาต่อ', 'อื่นๆ'],
-                'colors' => ['#00e5ff', '#ff453a', '#32d74b', '#98989d'],
+                'colors' => ['#2563eb', '#e11d48', '#0d9488', '#64748b'],
                 'data' => [$employed, $unemployed, $furtherStudy, $other],
             ],
             'relatedChart' => [
                 'labels' => ['ตรงสาย', 'ไม่ตรงสาย'],
-                'colors' => ['#00e5ff', '#ffd60a'],
+                'colors' => ['#2563eb', '#d97706'],
                 'data' => [$relatedYes, $relatedNo],
             ],
             'departmentChart' => [

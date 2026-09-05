@@ -200,13 +200,13 @@
                 @endphp
 
                 {{-- Header --}}
-                <div class="bg-neutral text-neutral-content px-6 py-5">
+                <div class="bg-primary text-primary-content px-6 py-5">
                     <div class="flex items-start justify-between gap-4">
                         <div class="min-w-0">
                             <h3 class="font-bold text-xl truncate">{{ $viewingStudent->prefix }}{{ $viewingStudent->first_name }} {{ $viewingStudent->last_name }}</h3>
-                            <p class="font-mono text-sm text-neutral-content/60 mt-0.5">{{ $viewingStudent->student_code }}</p>
+                            <p class="font-mono text-sm text-primary-content/70 mt-0.5">{{ $viewingStudent->student_code }}</p>
                         </div>
-                        <button type="button" wire:click="closeDetail" class="btn btn-sm btn-circle btn-ghost text-neutral-content/70" aria-label="ปิด">✕</button>
+                        <button type="button" wire:click="closeDetail" class="btn btn-sm btn-circle btn-ghost text-primary-content/80" aria-label="ปิด">✕</button>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2 mt-4">
@@ -223,7 +223,7 @@
                                 default => $viewingStudent->status,
                             } }}
                         </span>
-                        <span class="text-xs text-neutral-content/60">
+                        <span class="text-xs text-primary-content/80">
                             ปรับปรุงล่าสุด {{ $viewingStudent->last_updated_at->format('d/m/').($viewingStudent->last_updated_at->format('Y') + 543) }}
                             {{ $viewingStudent->last_updated_at->format('H:i') }} ({{ $viewingStudent->last_updated_human }})
                             ที่{{ $fromCareer ? 'ภาวะการมีงานทำ' : 'ข้อมูลนักศึกษา' }}@if ($editor) โดย {{ $editor['name'] }}@endif

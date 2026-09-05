@@ -268,9 +268,9 @@
                 data: {
                     labels: payload.labels,
                     datasets: [
-                        { label: 'มีงานทำ', data: payload.employed, backgroundColor: '#00e5ff' },
+                        { label: 'มีงานทำ', data: payload.employed, backgroundColor: '#2563eb' },
                         { label: 'ว่างงาน', data: payload.unemployed, backgroundColor: '#b5484a' },
-                        { label: 'ศึกษาต่อ', data: payload.further_study, backgroundColor: '#32d74b' },
+                        { label: 'ศึกษาต่อ', data: payload.further_study, backgroundColor: '#0d9488' },
                     ],
                 },
                 options: {
@@ -295,16 +295,16 @@
                         {
                             label: 'อัตราการตอบแบบสอบถาม (%)',
                             data: payload.response_rate,
-                            borderColor: '#00e5ff',
-                            backgroundColor: '#00e5ff26',
+                            borderColor: '#2563eb',
+                            backgroundColor: '#2563eb1f',
                             tension: 0.35,
                             fill: true,
                         },
                         {
                             label: 'อัตราการมีงานทำ (%)',
                             data: payload.employed_rate,
-                            borderColor: '#32d74b',
-                            backgroundColor: '#32d74b26',
+                            borderColor: '#0d9488',
+                            backgroundColor: '#0d94881f',
                             tension: 0.35,
                             fill: true,
                         },
@@ -327,7 +327,7 @@
         init(el) {
             this.map = L.map(el, { scrollWheelZoom: false }).setView([13.7563, 100.5018], 6);
 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
                 maxZoom: 18,
             }).addTo(this.map);
@@ -337,7 +337,7 @@
 
             payload.forEach((p) => {
                 const radius = 8 + (p.total / maxTotal) * 22;
-                const color = p.employed >= p.further_study ? '#00e5ff' : '#32d74b';
+                const color = p.employed >= p.further_study ? '#2563eb' : '#0d9488';
 
                 L.circleMarker([p.lat, p.lng], {
                     radius,

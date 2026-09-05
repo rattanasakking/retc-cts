@@ -2,11 +2,11 @@ import './bootstrap';
 
 import Chart from 'chart.js/auto';
 
-// Chart.js defaults to near-black text and light grid lines, which vanish on
-// the dark surface every chart in this app sits on. Set once here rather than
-// repeating the same options object in each chart component.
-Chart.defaults.color = '#98989d';
-Chart.defaults.borderColor = '#2c2c2e';
+// Chart.js ships a near-black default that fights the muted ink used
+// everywhere else. Set once here rather than repeating the same options
+// object in each chart component.
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#e2e8f0';
 Chart.defaults.font.family = "'Inter', 'IBM Plex Sans Thai', system-ui, sans-serif";
 
 window.Chart = Chart;

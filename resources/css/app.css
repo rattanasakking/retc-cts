@@ -3,36 +3,37 @@
 @plugin 'daisyui/theme' {
     name: 'retccts';
     default: true;
-    prefersdark: true;
-    color-scheme: 'dark';
+    prefersdark: false;
+    color-scheme: 'light';
 
-    /* Data-first dark palette (see DESIGN.md): near-black page, one neon cyan
-       accent carrying every data mark, and system-style semantic colours. */
-    --color-primary: #00e5ff;
-    --color-primary-content: #00232b;
-    --color-secondary: #32d74b;
-    --color-secondary-content: #0a2110;
-    --color-accent: #30d158;
-    --color-accent-content: #04220f;
+    /* Bright, high-key palette: white panels on a faintly blue-tinted page,
+       with vivid accents doing the signalling. Ink is a deep navy rather than
+       black — softer to read against white for a screen someone sits in front
+       of all day. */
+    --color-primary: #2563eb;
+    --color-primary-content: #ffffff;
+    --color-secondary: #7c3aed;
+    --color-secondary-content: #ffffff;
+    --color-accent: #06b6d4;
+    --color-accent-content: #04252c;
 
-    /* Sidebar shares the card surface so panels read as one material */
-    --color-neutral: #1e1e1e;
-    --color-neutral-content: #ffffff;
+    /* Sidebar is a white panel too — the whole app reads as one bright surface */
+    --color-neutral: #ffffff;
+    --color-neutral-content: #17233a;
 
-    /* #121212 page, #1E1E1E cards, #2C2C2E hairlines */
-    --color-base-100: #1e1e1e;
-    --color-base-200: #121212;
-    --color-base-300: #2c2c2e;
-    --color-base-content: #ffffff;
+    --color-base-100: #ffffff;
+    --color-base-200: #f3f7fd;
+    --color-base-300: #dfe7f3;
+    --color-base-content: #17233a;
 
-    --color-info: #64d2ff;
-    --color-info-content: #002633;
-    --color-success: #32d74b;
-    --color-success-content: #0a2110;
-    --color-warning: #ffd60a;
-    --color-warning-content: #2b2200;
-    --color-error: #ff453a;
-    --color-error-content: #2b0b08;
+    --color-info: #0ea5e9;
+    --color-info-content: #ffffff;
+    --color-success: #16a34a;
+    --color-success-content: #ffffff;
+    --color-warning: #f59e0b;
+    --color-warning-content: #3a2606;
+    --color-error: #e11d48;
+    --color-error-content: #ffffff;
 
     --radius-box: 1rem;
     --radius-field: 0.5rem;
@@ -55,9 +56,11 @@
     display: none !important;
 }
 
-/* Cards carry a hairline, not just a shadow — shadows barely read on #121212. */
+/* Cards sit on a tinted page, so a hairline plus a soft shadow separates them
+   without the heavy borders that would busy up a light layout. */
 .card {
     border: 1px solid var(--color-base-300);
+    box-shadow: 0 1px 2px rgb(23 35 58 / 0.04), 0 8px 24px -12px rgb(23 35 58 / 0.12);
 }
 
 /* Figures are the point of every screen here: monospaced so digits line up
@@ -70,13 +73,12 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Table rows: hairline separators and a lift on hover, per DESIGN.md. */
 .table :where(tbody tr:not(:last-child)) {
     border-bottom: 1px solid var(--color-base-300);
 }
 
 .table :where(tbody tr:hover) {
-    background-color: #252525;
+    background-color: #eff5fe;
 }
 
 /* Alerts read as a left-edge severity stripe rather than a filled block. */
@@ -103,13 +105,7 @@
     overflow: hidden;
 }
 
-/* Leaflet renders its own white chrome — pull it onto the dark surface. */
-.leaflet-container {
-    background: #121212;
-}
-
-.leaflet-popup-content-wrapper,
-.leaflet-popup-tip {
-    background: var(--color-base-100);
-    color: var(--color-base-content);
+/* The white sidebar needs a defined edge against the tinted page. */
+.drawer-side aside {
+    border-right: 1px solid var(--color-base-300);
 }
