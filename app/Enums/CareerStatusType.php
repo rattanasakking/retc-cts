@@ -26,12 +26,12 @@ enum CareerStatusType: string
     public function color(): string
     {
         return match ($this) {
-            self::Employed => '#2563eb',
-            self::Unemployed => '#e11d48',
-            self::FurtherStudy => '#0d9488',
-            self::MilitaryService => '#d97706',
-            self::Entrepreneur => '#7c3aed',
-            self::Other => '#64748b',
+            self::Employed => '#3b82f6',
+            self::Unemployed => '#f87171',
+            self::FurtherStudy => '#22c55e',
+            self::MilitaryService => '#fbbf24',
+            self::Entrepreneur => '#a855f7',
+            self::Other => '#94a3b8',
         };
     }
 }

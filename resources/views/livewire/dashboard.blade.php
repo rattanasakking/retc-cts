@@ -41,46 +41,46 @@
         <button type="button" wire:click="resetFilters" class="btn btn-ghost btn-xs">ล้างตัวกรองแผนก/ระดับ</button>
     @endif
 
-    {{-- 6 stat cards --}}
+    {{-- Stat cards: icon tile top-left, share of the cohort as a pill top-right,
+         label, then the figure — the Skylearn stat-card pattern. --}}
+    @php
+        $statCards = [
+            ['label' => 'ผู้สำเร็จการศึกษา', 'value' => $stats['graduates'], 'pill' => null, 'tone' => 'text-base-content',
+             'icon' => 'M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5'],
+            ['label' => 'ผู้ตอบแบบสอบถาม', 'value' => $stats['respondents'], 'pill' => $rates['response'], 'tone' => 'text-secondary',
+             'icon' => 'M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z'],
+            ['label' => 'มีงานทำ', 'value' => $stats['employed'], 'pill' => $rates['employed'], 'tone' => 'text-primary',
+             'icon' => 'M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0'],
+            ['label' => 'ศึกษาต่อ', 'value' => $stats['further_study'], 'pill' => null, 'tone' => 'text-success',
+             'icon' => 'M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25'],
+            ['label' => 'ว่างงาน', 'value' => $stats['unemployed'], 'pill' => null, 'tone' => 'text-error',
+             'icon' => 'M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z'],
+            ['label' => 'อื่นๆ', 'value' => $stats['other'], 'pill' => null, 'tone' => 'text-base-content/70',
+             'icon' => 'M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm6 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm6 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z'],
+        ];
+    @endphp
+
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4 gap-1">
-                <p class="kpi">{{ number_format($stats['graduates']) }}</p>
-                <p class="text-xs text-base-content/60">ผู้สำเร็จการศึกษา</p>
+        @foreach ($statCards as $card)
+            <div class="card bg-base-100">
+                <div class="card-body p-4 gap-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <span class="icon-chip">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="{{ $card['icon'] }}" />
+                            </svg>
+                        </span>
+                        @if ($card['pill'] !== null)
+                            <span @class(['delta-pill', 'is-up' => $card['pill'] >= 50, 'is-flat' => $card['pill'] < 50])>{{ $card['pill'] }}%</span>
+                        @endif
+                    </div>
+                    <div>
+                        <p class="text-xs text-base-content/60">{{ $card['label'] }}</p>
+                        <p class="kpi {{ $card['tone'] }}">{{ number_format($card['value']) }}</p>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4 gap-1">
-                <p class="kpi text-secondary">{{ number_format($stats['respondents']) }}</p>
-                <p class="text-xs text-base-content/60">ผู้ตอบแบบสอบถาม</p>
-                <p class="text-xs text-secondary font-medium">{{ $rates['response'] }}%</p>
-            </div>
-        </div>
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4 gap-1">
-                <p class="kpi text-primary">{{ number_format($stats['employed']) }}</p>
-                <p class="text-xs text-base-content/60">มีงานทำ</p>
-                <p class="text-xs text-primary font-medium">{{ $rates['employed'] }}%</p>
-            </div>
-        </div>
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4 gap-1">
-                <p class="kpi text-accent">{{ number_format($stats['further_study']) }}</p>
-                <p class="text-xs text-base-content/60">ศึกษาต่อ</p>
-            </div>
-        </div>
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4 gap-1">
-                <p class="kpi text-error">{{ number_format($stats['unemployed']) }}</p>
-                <p class="text-xs text-base-content/60">ว่างงาน</p>
-            </div>
-        </div>
-        <div class="card bg-base-100 shadow">
-            <div class="card-body p-4 gap-1">
-                <p class="text-2xl font-bold tabular-nums leading-tight text-base-content/70">{{ number_format($stats['other']) }}</p>
-                <p class="text-xs text-base-content/60">อื่นๆ</p>
-            </div>
-        </div>
+        @endforeach
     </div>
 
     {{-- Extra metrics --}}
@@ -268,9 +268,9 @@
                 data: {
                     labels: payload.labels,
                     datasets: [
-                        { label: 'มีงานทำ', data: payload.employed, backgroundColor: '#2563eb' },
+                        { label: 'มีงานทำ', data: payload.employed, backgroundColor: '#3b82f6' },
                         { label: 'ว่างงาน', data: payload.unemployed, backgroundColor: '#b5484a' },
-                        { label: 'ศึกษาต่อ', data: payload.further_study, backgroundColor: '#0d9488' },
+                        { label: 'ศึกษาต่อ', data: payload.further_study, backgroundColor: '#22c55e' },
                     ],
                 },
                 options: {
@@ -295,16 +295,16 @@
                         {
                             label: 'อัตราการตอบแบบสอบถาม (%)',
                             data: payload.response_rate,
-                            borderColor: '#2563eb',
-                            backgroundColor: '#2563eb1f',
+                            borderColor: '#3b82f6',
+                            backgroundColor: '#3b82f61f',
                             tension: 0.35,
                             fill: true,
                         },
                         {
                             label: 'อัตราการมีงานทำ (%)',
                             data: payload.employed_rate,
-                            borderColor: '#0d9488',
-                            backgroundColor: '#0d94881f',
+                            borderColor: '#22c55e',
+                            backgroundColor: '#22c55e1f',
                             tension: 0.35,
                             fill: true,
                         },
@@ -337,7 +337,7 @@
 
             payload.forEach((p) => {
                 const radius = 8 + (p.total / maxTotal) * 22;
-                const color = p.employed >= p.further_study ? '#2563eb' : '#0d9488';
+                const color = p.employed >= p.further_study ? '#3b82f6' : '#22c55e';
 
                 L.circleMarker([p.lat, p.lng], {
                     radius,

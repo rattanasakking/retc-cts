@@ -5,9 +5,9 @@ import Chart from 'chart.js/auto';
 // Chart.js ships a near-black default that fights the muted ink used
 // everywhere else. Set once here rather than repeating the same options
 // object in each chart component.
-Chart.defaults.color = '#64748b';
+Chart.defaults.color = '#475569';
 Chart.defaults.borderColor = '#e2e8f0';
-Chart.defaults.font.family = "'Inter', 'IBM Plex Sans Thai', system-ui, sans-serif";
+Chart.defaults.font.family = "'Atkinson Hyperlegible', 'IBM Plex Sans Thai', system-ui, sans-serif";
 
 window.Chart = Chart;
 
