@@ -202,9 +202,20 @@
                 {{-- Header --}}
                 <div class="bg-primary text-primary-content px-6 py-5">
                     <div class="flex items-start justify-between gap-4">
+                        @php
+                            // ชื่อคัดลอกแบบไม่มีคำนำหน้า — ระบบ V-COP รับชื่อกับนามสกุล
+                            // ไม่ได้รับ "นาย/นาง/นางสาว" ติดมาด้วย
+                            $copyName = trim($viewingStudent->first_name.' '.$viewingStudent->last_name);
+                        @endphp
                         <div class="min-w-0">
-                            <h3 class="font-bold text-xl truncate">{{ $viewingStudent->prefix }}{{ $viewingStudent->first_name }} {{ $viewingStudent->last_name }}</h3>
-                            <p class="font-mono text-sm text-primary-content/70 mt-0.5">{{ $viewingStudent->student_code }}</p>
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <h3 class="font-bold text-xl truncate">{{ $viewingStudent->prefix }}{{ $viewingStudent->first_name }} {{ $viewingStudent->last_name }}</h3>
+                                <x-copy-button :text="$copyName" label="คัดลอกชื่อ-สกุล" class="shrink-0 text-primary-content/70 hover:text-primary-content" />
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <p class="font-mono text-sm text-primary-content/70">{{ $viewingStudent->student_code }}</p>
+                                <x-copy-button :text="$viewingStudent->student_code" label="คัดลอกรหัสนักศึกษา" class="shrink-0 text-primary-content/70 hover:text-primary-content" />
+                            </div>
                         </div>
                         <button type="button" wire:click="closeDetail" class="btn btn-sm btn-circle btn-ghost text-primary-content/80" aria-label="ปิด">✕</button>
                     </div>
