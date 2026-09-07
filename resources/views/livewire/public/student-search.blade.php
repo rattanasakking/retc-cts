@@ -65,6 +65,34 @@
                             <span>{{ $student->program ?: '—' }} @if($student->degree_level) ({{ $student->degree_level }}) @endif</span>
                             <span class="text-right">ปีการศึกษา {{ $student->academicYear?->year }}</span>
                         </div>
+
+                        {{-- ภาวะการมีงานทำ: แสดงแค่ประเภทและวันที่อัปเดต ไม่แสดงชื่อ
+                             สถานประกอบการ เงินเดือน หรือที่ตั้ง ซึ่งเป็นข้อมูลที่ไม่ควร
+                             เปิดในหน้าสาธารณะที่ใครก็ค้นได้ --}}
+                        @php $career = $student->latestCareerStatus; @endphp
+                        <div class="mt-3 pt-3 border-t border-base-300">
+                            @if ($career)
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-base-content/50">ภาวะการมีงานทำ</span>
+                                        <span class="badge badge-sm border-transparent" style="background-color: {{ $career->status->color() }}; color: white;">
+                                            {{ $career->status->label() }}
+                                        </span>
+                                    </div>
+                                    <span class="text-xs text-base-content/50">
+                                        อัปเดตล่าสุด {{ \App\Support\ThaiDate::short($career->updated_at) }}
+                                        ({{ \App\Support\ThaiDate::relative($career->updated_at) }})
+                                    </span>
+                                </div>
+                            @else
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <span class="text-xs text-base-content/50">ยังไม่มีข้อมูลภาวะการมีงานทำ</span>
+                                    <a href="{{ route('public.career-status-self-report') }}" wire:navigate class="btn btn-primary btn-xs">
+                                        แจ้งข้อมูลของฉัน
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
                     </div>
                 </div>
             @endforeach

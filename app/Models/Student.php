@@ -63,6 +63,16 @@ class Student extends Model
     }
 
     /**
+     * The most recently touched career status, whichever academic year it
+     * belongs to — "when did this student last tell us anything", where
+     * currentCareerStatus() answers "what is true for this survey round".
+     */
+    public function latestCareerStatus(): HasOne
+    {
+        return $this->hasOne(CareerStatus::class)->latestOfMany('updated_at');
+    }
+
+    /**
      * Route notifications for the LineChannel — returns the LINE user ID
      * to push-message, or null to make the channel skip this recipient.
      */

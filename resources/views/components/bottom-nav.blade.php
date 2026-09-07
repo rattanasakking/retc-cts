@@ -16,12 +16,12 @@
 @endphp
 
 <nav class="bottom-nav lg:hidden fixed bottom-0 inset-x-0 z-40 bg-base-100 border-t border-base-300 pb-[env(safe-area-inset-bottom)]">
-    <div class="grid grid-cols-{{ count($tabs) + 1 }}">
+    <div class="flex items-stretch">
         @foreach ($tabs as $tab)
             @php $active = request()->routeIs($tab['route']); @endphp
             <a href="{{ route($tab['route']) }}" wire:navigate
-               class="flex flex-col items-center justify-center gap-1 py-2 text-[0.6875rem] font-semibold {{ $active ? 'text-primary' : 'text-base-content/55' }}">
-                <span @class(['flex items-center justify-center rounded-xl px-4 py-1', 'bg-primary/10' => $active])>
+               class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-[0.6875rem] font-semibold {{ $active ? 'text-primary' : 'text-base-content/55' }}">
+                <span @class(['flex items-center justify-center rounded-xl px-3 py-0.5', 'bg-primary/10' => $active])>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="{{ $tab['icon'] }}" />
                     </svg>
@@ -31,8 +31,8 @@
         @endforeach
 
         <label for="app-drawer"
-               class="flex flex-col items-center justify-center gap-1 py-2 text-[0.6875rem] font-semibold text-base-content/55 cursor-pointer">
-            <span class="flex items-center justify-center rounded-xl px-4 py-1">
+               class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-[0.6875rem] font-semibold text-base-content/55 cursor-pointer">
+            <span class="flex items-center justify-center rounded-xl px-3 py-0.5">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                 </svg>

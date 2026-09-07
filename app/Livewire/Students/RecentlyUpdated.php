@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\CareerStatus;
 use App\Models\Student;
 use App\Support\AuditLogger;
+use App\Support\ThaiDate;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Layout;
@@ -287,23 +288,6 @@ class RecentlyUpdated extends Component
     }
 
     /**
-     * "3 ชั่วโมงที่แล้ว" ฯลฯ — เขียนเองเพราะ locale ของแอปเป็น en
-     * diffForHumans() จึงคืนข้อความภาษาอังกฤษ
-     */
-    private function humanDiff(Carbon $moment): string
-    {
-        $minutes = $moment->diffInMinutes(now());
-
-        return match (true) {
-            $minutes < 1 => 'เมื่อสักครู่',
-            $minutes < 60 => floor($minutes).' นาทีที่แล้ว',
-            $minutes < 1440 => floor($minutes / 60).' ชั่วโมงที่แล้ว',
-            $minutes < 43200 => floor($minutes / 1440).' วันที่แล้ว',
-            default => floor($minutes / 43200).' เดือนที่แล้ว',
-        };
-    }
-
-    /**
      * สถานะการบันทึกลง V-COP ของนักศึกษาแต่ละคนในหน้านี้ ดึงเป็นก้อนเดียว
      *
      * @param  array<int, int>  $studentIds
@@ -348,7 +332,7 @@ class RecentlyUpdated extends Component
         $students->getCollection()->each(function (Student $student) {
             $student->last_updated_at = Carbon::parse($student->last_updated_at);
             $student->career_updated_at = $student->career_updated_at ? Carbon::parse($student->career_updated_at) : null;
-            $student->last_updated_human = $this->humanDiff($student->last_updated_at);
+            $student->last_updated_human = ThaiDate::relative($student->last_updated_at);
         });
 
         // นักศึกษาใน popup หยิบจากหน้าที่แสดงอยู่ ไม่ query ซ้ำ — ได้ last_updated_at

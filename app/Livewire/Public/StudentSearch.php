@@ -32,7 +32,7 @@ class StudentSearch extends Component
             $like = '%'.$term.'%';
 
             $students = Student::query()
-                ->with('academicYear')
+                ->with(['academicYear', 'latestCareerStatus'])
                 ->where(function ($query) use ($like) {
                     $query->where('student_code', 'like', $like)
                         ->orWhere('first_name', 'like', $like)
