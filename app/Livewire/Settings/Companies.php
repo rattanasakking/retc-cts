@@ -37,7 +37,7 @@ class Companies extends Component
     protected function rules(): array
     {
         return [
-            'file' => ['nullable', 'file', 'mimes:csv,txt', 'max:51200'],
+            'file' => ['nullable', 'file', 'mimes:csv,txt,xlsx,xls', 'max:51200'],
             'url' => ['nullable', 'url', 'max:2048'],
             'onlyProvince' => ['nullable', 'string', 'max:100'],
         ];
@@ -46,7 +46,7 @@ class Companies extends Component
     protected function messages(): array
     {
         return [
-            'file.mimes' => 'รองรับเฉพาะไฟล์ CSV',
+            'file.mimes' => 'รองรับไฟล์ CSV, XLSX และ XLS',
             'file.max' => 'ไฟล์ใหญ่เกิน 50MB — ลองแบ่งไฟล์หรือกรองเฉพาะจังหวัดก่อนอัปโหลด',
             'url.url' => 'ลิงก์ไม่ถูกต้อง',
         ];
@@ -54,7 +54,7 @@ class Companies extends Component
 
     public function importFile(): void
     {
-        $this->validate(['file' => ['required', 'file', 'mimes:csv,txt', 'max:51200']]);
+        $this->validate(['file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:51200']]);
 
         $this->runImport($this->file->getRealPath(), $this->file->getClientOriginalName());
         $this->reset('file');
@@ -68,6 +68,15 @@ class Companies extends Component
     public function importUrl(): void
     {
         $this->validate(['url' => ['required', 'url', 'max:2048']]);
+
+        // openapi.dbd.go.th ไม่ใช่ไฟล์ชุดข้อมูล แต่เป็น API ค้นทีละบริษัทด้วย
+        // เลขทะเบียน 13 หลัก และต้องมี API key — วางลิงก์นี้มาแล้วจะได้ HTML
+        // หรือ 403 กลับไปเงียบ ๆ จึงบอกให้ชัดตั้งแต่ตรงนี้
+        if (str_contains($this->url, 'openapi.dbd.go.th') || str_contains($this->url, '{')) {
+            $this->addError('url', 'ลิงก์นี้เป็น API ค้นรายบริษัท (ต้องใส่เลขทะเบียน 13 หลักและมี API key) ไม่ใช่ไฟล์ชุดข้อมูล — ให้ใช้ลิงก์ไฟล์ CSV/XLSX จากชุด "นิติบุคคลจดทะเบียนตั้งใหม่" บน opendata.dbd.go.th แทน');
+
+            return;
+        }
 
         $temp = tempnam(sys_get_temp_dir(), 'dbd');
 

@@ -13,6 +13,8 @@ use App\Support\CompanyImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
+use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
 
 class CompaniesTest extends TestCase
@@ -202,5 +204,46 @@ class CompaniesTest extends TestCase
 
         $this->assertSame(1, $result['imported']);
         unlink($path);
+    }
+
+    public function test_pasting_the_per_company_api_url_is_explained_rather_than_silently_failing(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        Livewire::actingAs($admin)
+            ->test(CompaniesSettings::class)
+            ->set('url', 'https://openapi.dbd.go.th/api/v1/juristic_person/{OrganizationJuristicID}')
+            ->call('importUrl')
+            ->assertHasErrors('url');
+
+        $this->assertSame(0, Company::count());
+    }
+
+    public function test_a_spreadsheet_is_read_even_when_it_is_named_csv(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $path = tempnam(sys_get_temp_dir(), 'dbd').'.xlsx';
+        Excel::store(new class implements FromArray
+        {
+            public function array(): array
+            {
+                return [
+                    ['เลขทะเบียนนิติบุคคล', 'ชื่อนิติบุคคล', 'จังหวัด'],
+                    ['0455561000999', 'บริษัท จากเอกซ์เซล จำกัด', 'ร้อยเอ็ด'],
+                ];
+            }
+        }, basename($path), 'local');
+
+        $stored = storage_path('app/private/'.basename($path));
+        $this->assertFileExists($stored);
+
+        $result = (new CompanyImporter)->import($stored);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertDatabaseHas('companies', ['name' => 'บริษัท จากเอกซ์เซล จำกัด']);
+
+        @unlink($stored);
+        @unlink($path);
     }
 }

@@ -40,10 +40,26 @@
             <div>
                 <h2 class="card-title text-base">อัปเดตข้อมูล</h2>
                 <p class="text-sm text-base-content/60">
-                    ดาวน์โหลดชุด "ข้อมูลทะเบียนนิติบุคคล" แบบ CSV จาก
-                    <a href="https://opendata.dbd.go.th/" target="_blank" rel="noopener" class="link link-primary">opendata.dbd.go.th</a>
-                    แล้วอัปโหลดที่นี่ หรือวางลิงก์ไฟล์ให้ระบบดึงเอง — นำเข้าซ้ำได้ ระบบจะอัปเดตรายการเดิมไม่สร้างซ้ำ
+                    รองรับไฟล์ CSV, XLSX และ XLS — นำเข้าซ้ำได้ ระบบจับคู่ด้วยเลขทะเบียน 13 หลัก แล้วอัปเดตรายการเดิมไม่สร้างซ้ำ
                 </p>
+
+                <div class="alert bg-info/10 border-info/30 text-sm items-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-info shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                    </svg>
+                    <div class="space-y-1">
+                        <p class="font-semibold">หาไฟล์ได้จากไหน</p>
+                        <p>
+                            ที่ <a href="https://opendata.dbd.go.th/th/dataset/?res_format=CSV" target="_blank" rel="noopener" class="link link-primary">opendata.dbd.go.th</a>
+                            ให้ใช้ชุด <strong>"นิติบุคคลจดทะเบียนตั้งใหม่"</strong> ซึ่งเป็นไฟล์รายเดือนแยกตามจังหวัด มีทั้งเลขทะเบียนและชื่อนิติบุคคล
+                            โหลดย้อนหลังหลาย ๆ เดือนแล้วนำเข้าทีละไฟล์ได้ รายชื่อจะสะสมขึ้นเรื่อย ๆ
+                        </p>
+                        <p class="text-base-content/70">
+                            ชุดที่ชื่อ "ข้อมูลทะเบียนนิติบุคคล" <strong>ไม่ใช่ไฟล์</strong> — เป็น API ที่ต้องค้นทีละบริษัทด้วยเลขทะเบียน 13 หลัก
+                            และต้องมี API key จึงใช้กับหน้านี้ไม่ได้
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <div>
@@ -59,7 +75,7 @@
                 {{-- Upload --}}
                 <div class="rounded-box border border-base-300 p-4 space-y-3">
                     <p class="font-semibold text-sm">อัปโหลดไฟล์ CSV</p>
-                    <input type="file" wire:model="file" accept=".csv,text/csv" class="file-input file-input-bordered file-input-sm w-full">
+                    <input type="file" wire:model="file" accept=".csv,.xlsx,.xls,text/csv" class="file-input file-input-bordered file-input-sm w-full">
                     <div wire:loading wire:target="file" class="text-xs text-base-content/60">กำลังอัปโหลด...</div>
                     @error('file') <p class="text-xs text-error">{{ $message }}</p> @enderror
 
@@ -68,7 +84,7 @@
                         <span wire:loading.remove wire:target="importFile">นำเข้าจากไฟล์</span>
                         <span wire:loading wire:target="importFile" class="loading loading-spinner loading-sm"></span>
                     </button>
-                    <p class="text-xs text-base-content/50">ไฟล์ไม่เกิน 50MB</p>
+                    <p class="text-xs text-base-content/50">CSV / XLSX / XLS ไม่เกิน 50MB</p>
                 </div>
 
                 {{-- From URL --}}

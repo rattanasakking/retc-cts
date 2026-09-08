@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Company;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 use RuntimeException;
 
 /**
@@ -34,6 +35,12 @@ class CompanyImporter
      */
     public function import(string $path, ?string $onlyProvince = null): array
     {
+        // DBD publishes its monthly rosters as Excel as often as CSV, and a
+        // spreadsheet renamed to .csv is a common way for one to arrive here.
+        if ($this->looksLikeSpreadsheet($path)) {
+            return $this->importSpreadsheet($path, $onlyProvince);
+        }
+
         $handle = fopen($path, 'r');
 
         if ($handle === false) {
@@ -92,6 +99,77 @@ class CompanyImporter
         }
 
         fclose($handle);
+
+        return ['imported' => $imported, 'updated' => $updated, 'skipped' => $skipped, 'headers' => $header];
+    }
+
+    /**
+     * XLSX and XLS are ZIP/OLE containers, so their first bytes identify them
+     * regardless of what the file is named — which matters because DBD files
+     * get renamed on the way here often enough to be worth not trusting the
+     * extension.
+     */
+    private function looksLikeSpreadsheet(string $path): bool
+    {
+        $handle = fopen($path, 'r');
+
+        if ($handle === false) {
+            return false;
+        }
+
+        $magic = fread($handle, 8);
+        fclose($handle);
+
+        return str_starts_with((string) $magic, "PK\x03\x04")            // xlsx
+            || str_starts_with((string) $magic, "\xD0\xCF\x11\xE0");      // xls
+    }
+
+    /**
+     * @return array{imported: int, updated: int, skipped: int, headers: array<int, string>}
+     */
+    private function importSpreadsheet(string $path, ?string $onlyProvince): array
+    {
+        $sheets = Excel::toArray(null, $path);
+        $rows = $sheets[0] ?? [];
+
+        if ($rows === []) {
+            throw new RuntimeException('ไฟล์ว่างเปล่า');
+        }
+
+        $header = array_map(fn ($cell) => (string) $cell, array_shift($rows));
+        $map = $this->mapColumns($header);
+
+        if (! isset($map['name'])) {
+            throw new RuntimeException(
+                'ไม่พบคอลัมน์ชื่อนิติบุคคลในไฟล์ — คอลัมน์ที่พบคือ: '.implode(', ', array_filter($header))
+            );
+        }
+
+        $imported = 0;
+        $updated = 0;
+        $skipped = 0;
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            $batch = [];
+
+            foreach ($chunk as $row) {
+                $record = $this->buildRecord($row, $map);
+
+                if ($record === null || ($onlyProvince && $record['province'] !== $onlyProvince)) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                $batch[] = $record;
+            }
+
+            if ($batch !== []) {
+                [$new, $touched] = $this->flush($batch);
+                $imported += $new;
+                $updated += $touched;
+            }
+        }
 
         return ['imported' => $imported, 'updated' => $updated, 'skipped' => $skipped, 'headers' => $header];
     }
