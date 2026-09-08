@@ -79,15 +79,56 @@ class CompanyMatchingTest extends TestCase
             ->set('status', 'employed');
     }
 
-    public function test_the_online_search_button_appears_only_when_the_local_table_has_nothing(): void
+    public function test_an_unknown_name_is_looked_up_without_being_asked(): void
     {
+        Http::fake([
+            'nominatim.openstreetmap.org/*' => Http::response([
+                ['name' => 'ร้านจากแผนที่', 'display_name' => 'ร้านจากแผนที่, ร้อยเอ็ด', 'address' => []],
+            ]),
+        ]);
+
+        // No button press — typing is enough.
+        $this->verifiedForm()
+            ->set('company_name', 'ร้านที่ไม่มีในระบบ')
+            ->assertSee('ร้านจากแผนที่');
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_a_name_already_in_the_table_is_never_looked_up_online(): void
+    {
+        Http::fake();
         Company::create(['name' => 'บริษัท มีอยู่แล้ว จำกัด']);
 
-        $this->verifiedForm()
-            ->set('company_name', 'มีอยู่แล้ว')
-            ->assertDontSee('ค้นหาจากแผนที่ OpenStreetMap')
-            ->set('company_name', 'ร้านที่ไม่มีในระบบ')
-            ->assertSee('ค้นหาจากแผนที่ OpenStreetMap');
+        $this->verifiedForm()->set('company_name', 'มีอยู่แล้ว');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_a_short_term_is_not_looked_up_online(): void
+    {
+        Http::fake();
+
+        $this->verifiedForm()->set('company_name', 'ทด');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_the_throttle_drops_a_second_lookup_within_the_same_second(): void
+    {
+        Http::fake([
+            'nominatim.openstreetmap.org/*' => Http::response([
+                ['name' => 'ร้านหนึ่ง', 'display_name' => 'ร้านหนึ่ง', 'address' => []],
+            ]),
+        ]);
+
+        $osm = app(OpenStreetMapCompanies::class);
+
+        $this->assertNotSame([], $osm->search('คำค้นแรก'));
+        // Different wording, so the cache cannot answer it — the rate limit does.
+        $this->assertSame([], $osm->search('คำค้นที่สอง'));
+
+        Http::assertSentCount(1);
     }
 
     public function test_picking_an_openstreetmap_result_fills_the_form_and_saves_it(): void
@@ -124,9 +165,8 @@ class CompanyMatchingTest extends TestCase
 
         $this->verifiedForm()
             ->set('company_name', 'ร้านที่ไม่มีในระบบ')
-            ->call('searchOnline')
             ->assertHasNoErrors()
-            ->assertSee('ไม่พบในแผนที่เช่นกัน');
+            ->assertSee('ไม่พบชื่อนี้ทั้งในระบบและในแผนที่');
     }
 
     public function test_lookups_are_cached_so_the_same_wording_is_not_asked_twice(): void

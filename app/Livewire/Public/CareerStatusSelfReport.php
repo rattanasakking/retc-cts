@@ -191,6 +191,31 @@ class CareerStatusSelfReport extends Component
         $this->onlineResults = [];
         $this->searchedOnline = false;
         $this->applyKnownLocation($this->company_name, 'company_name');
+        $this->lookUpOnlineIfUnknown();
+    }
+
+    /**
+     * ค้นจาก OpenStreetMap ให้เองเมื่อชื่อที่พิมพ์ยังไม่มีในระบบ
+     *
+     * ผูกไว้กับ updatedCompanyName ซึ่งทำงานหลังผู้ใช้หยุดพิมพ์ตามที่ตั้ง
+     * debounce ไว้ในฟอร์ม ไม่ใช่ทุกตัวอักษร และตัวบริการเองยังมี throttle
+     * กับ cache อีกชั้น
+     */
+    private function lookUpOnlineIfUnknown(): void
+    {
+        $term = trim($this->company_name);
+
+        if (! $this->isWorkingStatus() || mb_strlen($term) < 4) {
+            return;
+        }
+
+        // ถ้ามีในระบบอยู่แล้วก็ไม่ต้องออกไปถามข้างนอก
+        if (Company::matching($term)->exists()) {
+            return;
+        }
+
+        $this->searchedOnline = true;
+        $this->onlineResults = app(OpenStreetMapCompanies::class)->search($term);
     }
 
     /**

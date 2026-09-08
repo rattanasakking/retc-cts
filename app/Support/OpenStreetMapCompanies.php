@@ -4,6 +4,7 @@ namespace App\Support;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 use Throwable;
 
 /**
@@ -14,10 +15,11 @@ use Throwable;
  * registered as one — the repair shops, restaurants and factories a lot of
  * graduates actually work for. OSM has those.
  *
- * Nominatim's usage policy forbids autocomplete-style querying, so this runs
- * only when someone presses the search button, and answers are cached so the
- * same wording is never asked twice. Failure is always silent: the form must
- * keep working when OSM is slow, blocked, or down.
+ * The lookup fires on its own once typing settles. Nominatim allows at most
+ * one request per second, so three things keep this inside that: the form
+ * debounces before asking, answers are cached for a month, and a throttle
+ * drops anything over the limit rather than queueing it. Failure is always
+ * silent — the form must keep working when OSM is slow, blocked, or down.
  */
 class OpenStreetMapCompanies
 {
@@ -39,9 +41,41 @@ class OpenStreetMapCompanies
 
         $key = 'osm-companies:'.md5(mb_strtolower($term));
 
-        return Cache::remember($key, now()->addDays((int) config('companies.osm_cache_days', 30)), function () use ($term) {
-            return $this->fetch($term);
-        });
+        if (Cache::has($key)) {
+            return Cache::get($key);
+        }
+
+        // The search runs as people type, so the throttle is what keeps this
+        // inside Nominatim's one-request-per-second cap. Being turned away is
+        // not an error: the local suggestions are still on screen, and the
+        // next keystroke tries again.
+        if (! $this->withinRateLimit()) {
+            return [];
+        }
+
+        $results = $this->fetch($term);
+
+        Cache::put($key, $results, now()->addDays((int) config('companies.osm_cache_days', 30)));
+
+        return $results;
+    }
+
+    private function withinRateLimit(): bool
+    {
+        $globallyAllowed = RateLimiter::attempt('osm-lookup', 1, fn () => true, 1);
+
+        if (! $globallyAllowed) {
+            return false;
+        }
+
+        // A second cap per visitor, so one person leaning on the keyboard
+        // cannot spend the whole site's budget.
+        return (bool) RateLimiter::attempt(
+            'osm-lookup:'.sha1((string) request()?->ip()),
+            40,
+            fn () => true,
+            3600
+        );
     }
 
     /**

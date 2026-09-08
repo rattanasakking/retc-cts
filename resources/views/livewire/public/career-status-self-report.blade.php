@@ -150,7 +150,7 @@
                                 </label>
                                 <input
                                     type="text"
-                                    wire:model.live.debounce.400ms="company_name"
+                                    wire:model.live.debounce.700ms="company_name"
                                     list="self-report-company-suggestions"
                                     class="input input-bordered w-full"
                                 >
@@ -163,23 +163,22 @@
 
                                 {{-- ถ้าไม่มีในฐานข้อมูลของระบบ ให้ค้นต่อจาก OpenStreetMap ได้ ครอบคลุมร้านค้า
                                      โรงงาน และกิจการที่ไม่ได้จดเป็นนิติบุคคล ซึ่งชุดข้อมูลของ DBD ไม่มี --}}
+                                {{-- ระหว่างที่ระบบกำลังไปค้นให้ --}}
+                                <div wire:loading wire:target="company_name" class="mt-2 flex items-center gap-2 text-xs text-base-content/50">
+                                    <span class="loading loading-spinner loading-xs"></span>
+                                    กำลังค้นหาชื่อสถานประกอบการ...
+                                </div>
+
                                 @if ($osmEnabled && mb_strlen(trim($company_name)) >= 3 && $companySuggestions->isEmpty())
-                                    <div class="mt-2">
+                                    <div class="mt-2" wire:loading.remove wire:target="company_name">
                                         @if (! $searchedOnline)
-                                            <button type="button" wire:click="searchOnline" class="btn btn-outline btn-xs gap-1"
-                                                    wire:loading.attr="disabled" wire:target="searchOnline">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                                                </svg>
-                                                <span wire:loading.remove wire:target="searchOnline">ไม่พบชื่อนี้ — ค้นหาจากแผนที่ OpenStreetMap</span>
-                                                <span wire:loading wire:target="searchOnline">กำลังค้นหา...</span>
-                                            </button>
+                                            {{-- ยังพิมพ์ไม่ถึงเกณฑ์ที่จะออกไปค้น --}}
                                         @elseif ($onlineResults === [])
                                             <p class="text-xs text-base-content/50">
-                                                ไม่พบในแผนที่เช่นกัน — พิมพ์ชื่อเต็มได้เลย ระบบจะบันทึกไว้ให้
+                                                ไม่พบชื่อนี้ทั้งในระบบและในแผนที่ — พิมพ์ชื่อเต็มได้เลย ระบบจะบันทึกไว้ให้
                                             </p>
                                         @else
-                                            <p class="text-xs text-base-content/50 mb-1">พบในแผนที่ กดเลือกเพื่อใช้ชื่อนี้</p>
+                                            <p class="text-xs text-base-content/50 mb-1">ชื่อที่ใกล้เคียงจากแผนที่ กดเลือกเพื่อใช้ชื่อนี้</p>
                                             <ul class="space-y-1">
                                                 @foreach ($onlineResults as $index => $result)
                                                     <li>
