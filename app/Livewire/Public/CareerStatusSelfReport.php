@@ -3,6 +3,7 @@
 namespace App\Livewire\Public;
 
 use App\Enums\CareerStatusType;
+use App\Livewire\Concerns\SuggestsPlaces;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
 use App\Models\Company;
@@ -11,7 +12,6 @@ use App\Models\Student;
 use App\Models\ThaiDistrict;
 use App\Models\ThaiProvince;
 use App\Models\ThaiSubdistrict;
-use App\Support\OpenStreetMapCompanies;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -31,6 +31,16 @@ use Livewire\Component;
 #[Title('แจ้งข้อมูลภาวะการมีงานทำ')]
 class CareerStatusSelfReport extends Component
 {
+    use SuggestsPlaces;
+
+    protected function placeFields(): array
+    {
+        return [
+            'company_name' => Company::COMPANY,
+            'institution_name' => Company::INSTITUTION,
+        ];
+    }
+
     public string $step = 'search';
 
     public string $search = '';
@@ -71,15 +81,6 @@ class CareerStatusSelfReport extends Component
 
     /** ชื่อสถานที่ที่ระบบดึงที่ตั้งมาให้อัตโนมัติ (ว่าง = ไม่ได้ดึงให้) */
     public string $autofilledLocationFor = '';
-
-    /**
-     * ผลค้นหาจาก OpenStreetMap — ว่างไว้จนกว่าผู้ใช้จะกดปุ่มค้นหาเอง
-     *
-     * @var array<int, array{name: string, province: ?string, district: ?string, detail: string}>
-     */
-    public array $onlineResults = [];
-
-    public bool $searchedOnline = false;
 
     public function mount(): void
     {
@@ -184,73 +185,13 @@ class CareerStatusSelfReport extends Component
     public function updatedInstitutionName(): void
     {
         $this->applyKnownLocation($this->institution_name, 'institution_name');
+        $this->refreshPlaceSuggestions('institution_name');
     }
 
     public function updatedCompanyName(): void
     {
-        $this->onlineResults = [];
-        $this->searchedOnline = false;
         $this->applyKnownLocation($this->company_name, 'company_name');
-        $this->lookUpOnlineIfUnknown();
-    }
-
-    /**
-     * ค้นจาก OpenStreetMap ให้เองเมื่อชื่อที่พิมพ์ยังไม่มีในระบบ
-     *
-     * ผูกไว้กับ updatedCompanyName ซึ่งทำงานหลังผู้ใช้หยุดพิมพ์ตามที่ตั้ง
-     * debounce ไว้ในฟอร์ม ไม่ใช่ทุกตัวอักษร และตัวบริการเองยังมี throttle
-     * กับ cache อีกชั้น
-     */
-    private function lookUpOnlineIfUnknown(): void
-    {
-        $term = trim($this->company_name);
-
-        if (! $this->isWorkingStatus() || mb_strlen($term) < 4) {
-            return;
-        }
-
-        // ถ้ามีในระบบอยู่แล้วก็ไม่ต้องออกไปถามข้างนอก
-        if (Company::matching($term)->exists()) {
-            return;
-        }
-
-        $this->searchedOnline = true;
-        $this->onlineResults = app(OpenStreetMapCompanies::class)->search($term);
-    }
-
-    /**
-     * ค้นชื่อสถานประกอบการจาก OpenStreetMap — เรียกเมื่อกดปุ่มเท่านั้น
-     * ไม่ได้ยิงทุกครั้งที่พิมพ์ ตามนโยบายการใช้งานของผู้ให้บริการ
-     */
-    public function searchOnline(OpenStreetMapCompanies $osm): void
-    {
-        $this->searchedOnline = true;
-        $this->onlineResults = $osm->search($this->company_name);
-    }
-
-    /** เลือกผลจาก OpenStreetMap มาใส่ในฟอร์ม แล้วเก็บเข้าฐานข้อมูลของระบบ */
-    public function useOnlineResult(int $index): void
-    {
-        $result = $this->onlineResults[$index] ?? null;
-
-        if (! $result) {
-            return;
-        }
-
-        $this->company_name = $result['name'];
-        $this->onlineResults = [];
-        $this->searchedOnline = false;
-
-        Company::remember($result['name'], [
-            'source' => 'osm',
-            'province' => $result['province'],
-            'district' => $result['district'],
-        ]);
-
-        // ถ้าจังหวัดที่ OSM ให้มาตรงกับในระบบ ก็เลือกให้เลย เหลือแค่เลือกอำเภอ/ตำบล
-        if (! $this->work_province_id && $result['province']) {
-            $this->work_province_id = ThaiProvince::where('name_th', $result['province'])->value('id');
-        }
+        $this->refreshPlaceSuggestions('company_name');
     }
 
     /**
@@ -369,8 +310,9 @@ class CareerStatusSelfReport extends Component
             ]);
         });
 
-        // ชื่อที่ยังไม่มีในฐานข้อมูลนิติบุคคลจะถูกเก็บไว้เป็นตัวช่วยเติมของคนถัดไป
-        Company::remember($validated['company_name'] ?? null);
+        // ชื่อที่ยังไม่มีในฐานข้อมูลสถานที่จะถูกเก็บไว้เป็นตัวช่วยเติมของคนถัดไป
+        Company::remember($validated['company_name'] ?? null, ['kind' => Company::COMPANY]);
+        Company::remember($validated['institution_name'] ?? null, ['kind' => Company::INSTITUTION]);
 
         SelfReportEvent::record(SelfReportEvent::SUBMITTED, $this->verifiedStudentId);
 
@@ -404,19 +346,6 @@ class CareerStatusSelfReport extends Component
             'isWorkingStatus' => $this->isWorkingStatus(),
             'isFurtherStudy' => $this->isFurtherStudy(),
             'needsLocation' => $this->needsLocation(),
-            'institutionSuggestions' => $this->isFurtherStudy()
-                ? CareerStatus::whereNotNull('institution_name')
-                    ->distinct()
-                    ->orderBy('institution_name')
-                    ->limit(200)
-                    ->pluck('institution_name')
-                : collect(),
-            // ค้นตามที่พิมพ์ไปแล้ว ไม่ได้โหลดทั้งตารางมารอ — หลังนำเข้าข้อมูล DBD
-            // ตารางนี้มีได้เป็นหมื่นรายการ
-            'companySuggestions' => $this->isWorkingStatus() && mb_strlen(trim($this->company_name)) >= 2
-                ? Company::matching($this->company_name)->limit(20)->pluck('name')
-                : collect(),
-            'osmEnabled' => app(OpenStreetMapCompanies::class)->enabled(),
             'provinces' => ThaiProvince::orderBy('name_th')->get(),
             'districts' => $this->work_province_id
                 ? ThaiDistrict::where('province_id', $this->work_province_id)->orderBy('name_th')->get()

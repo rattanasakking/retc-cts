@@ -27,8 +27,13 @@ class Company extends Model
         'limited partnership', 'partnership',
     ];
 
+    public const COMPANY = 'company';
+
+    public const INSTITUTION = 'institution';
+
     protected $fillable = [
         'name',
+        'kind',
         'search_name',
         'juristic_id',
         'type',
@@ -91,6 +96,12 @@ class Company extends Model
         return $query
             ->orderByRaw('case when search_name like ? then 0 else 1 end', [$normalised.'%'])
             ->orderBy('name');
+    }
+
+    /** สถานประกอบการ หรือ สถานศึกษา — คนละรายการกันเวลาเสนอให้เลือก */
+    public function scopeOfKind(Builder $query, string $kind): Builder
+    {
+        return $query->where('kind', $kind);
     }
 
     /**

@@ -106,17 +106,19 @@
                             </label>
                             <input
                                 type="text"
-                                wire:model.live.debounce.400ms="company_name"
-                                list="career-form-company-suggestions"
+                                wire:model.live.debounce.700ms="company_name"
                                 class="input input-bordered w-full"
-                                placeholder="พิมพ์ 2 ตัวอักษรขึ้นไปเพื่อค้นจากฐานข้อมูลนิติบุคคล"
+                                placeholder="พิมพ์ชื่อสถานประกอบการ แล้วเลือกจากรายการ"
+                                autocomplete="off"
                             >
-                            <datalist id="career-form-company-suggestions">
-                                @foreach ($companySuggestions as $suggestion)
-                                    <option value="{{ $suggestion }}"></option>
-                                @endforeach
-                            </datalist>
                             @error('company_name') <p class="text-xs text-error mt-1">{{ $message }}</p> @enderror
+
+                            <x-place-suggestions
+                                field="company_name"
+                                kind="company"
+                                :suggestions="$placeSuggestions['company_name'] ?? []"
+                                :searched="$placeSearched['company_name'] ?? false"
+                            />
                         </div>
 
                         <div>
@@ -163,17 +165,19 @@
                             <label class="label pb-1"><span class="label-text text-xs">ชื่อสถานศึกษาต่อ *</span></label>
                             <input
                                 type="text"
-                                wire:model="institution_name"
-                                list="institution-name-suggestions"
+                                wire:model.live.debounce.700ms="institution_name"
                                 class="input input-bordered w-full"
-                                placeholder="เช่น มหาวิทยาลัยเทคโนโลยีราชมงคล..."
+                                placeholder="พิมพ์ชื่อสถานศึกษา แล้วเลือกจากรายการ"
+                                autocomplete="off"
                             >
-                            <datalist id="institution-name-suggestions">
-                                @foreach ($institutionSuggestions as $suggestion)
-                                    <option value="{{ $suggestion }}"></option>
-                                @endforeach
-                            </datalist>
                             @error('institution_name') <p class="text-xs text-error mt-1">{{ $message }}</p> @enderror
+
+                            <x-place-suggestions
+                                field="institution_name"
+                                kind="institution"
+                                :suggestions="$placeSuggestions['institution_name'] ?? []"
+                                :searched="$placeSearched['institution_name'] ?? false"
+                            />
                         </div>
                     </div>
                 @endif

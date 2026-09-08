@@ -6,12 +6,14 @@ use App\Enums\UserRole;
 use App\Livewire\CareerStatuses\CareerStatusForm;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
+use App\Models\Company;
 use App\Models\Student;
 use App\Models\ThaiDistrict;
 use App\Models\ThaiProvince;
 use App\Models\ThaiSubdistrict;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -223,25 +225,43 @@ class CareerStatusFormTest extends TestCase
         ]);
     }
 
-    public function test_institution_name_suggestions_are_pulled_from_existing_records(): void
+    public function test_institution_suggestions_come_from_the_places_table(): void
     {
+        Http::fake();
+
         $teacher = User::factory()->create(['role' => UserRole::Teacher]);
         $year = AcademicYear::factory()->create();
-        $otherStudent = Student::factory()->create(['academic_year_id' => $year->id]);
         $student = Student::factory()->create(['academic_year_id' => $year->id]);
 
-        CareerStatus::factory()->create([
-            'student_id' => $otherStudent->id,
-            'academic_year_id' => $year->id,
-            'status' => 'further_study',
-            'institution_name' => 'มหาวิทยาลัยเชียงใหม่',
+        Company::create([
+            'name' => 'มหาวิทยาลัยเชียงใหม่',
+            'kind' => Company::INSTITUTION,
         ]);
 
         Livewire::actingAs($teacher)
             ->test(CareerStatusForm::class)
             ->call('selectStudent', $student->id)
             ->set('status', 'further_study')
+            ->set('institution_name', 'เชียงใหม่')
             ->assertSee('มหาวิทยาลัยเชียงใหม่');
+    }
+
+    public function test_a_workplace_is_never_offered_as_a_place_of_study(): void
+    {
+        Http::fake();
+
+        $teacher = User::factory()->create(['role' => UserRole::Teacher]);
+        $year = AcademicYear::factory()->create();
+        $student = Student::factory()->create(['academic_year_id' => $year->id]);
+
+        Company::create(['name' => 'บริษัท เชียงใหม่ค้าไม้ จำกัด']);
+
+        Livewire::actingAs($teacher)
+            ->test(CareerStatusForm::class)
+            ->call('selectStudent', $student->id)
+            ->set('status', 'further_study')
+            ->set('institution_name', 'เชียงใหม่')
+            ->assertDontSee('บริษัท เชียงใหม่ค้าไม้ จำกัด');
     }
 
     /**

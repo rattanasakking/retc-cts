@@ -181,11 +181,17 @@ class CompanyImporter
      */
     public function importFromExistingCareerStatuses(): int
     {
+        return $this->rememberColumn('company_name', Company::COMPANY)
+            + $this->rememberColumn('institution_name', Company::INSTITUTION);
+    }
+
+    private function rememberColumn(string $column, string $kind): int
+    {
         $names = DB::table('career_statuses')
-            ->whereNotNull('company_name')
-            ->where('company_name', '!=', '')
+            ->whereNotNull($column)
+            ->where($column, '!=', '')
             ->distinct()
-            ->pluck('company_name');
+            ->pluck($column);
 
         $added = 0;
 
@@ -197,7 +203,7 @@ class CompanyImporter
             }
 
             if (Company::where('name', $name)->doesntExist()) {
-                Company::create(['name' => $name, 'source' => 'entered']);
+                Company::create(['name' => $name, 'kind' => $kind, 'source' => 'entered']);
                 $added++;
             }
         }

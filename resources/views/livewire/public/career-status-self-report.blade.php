@@ -151,49 +151,18 @@
                                 <input
                                     type="text"
                                     wire:model.live.debounce.700ms="company_name"
-                                    list="self-report-company-suggestions"
                                     class="input input-bordered w-full"
+                                    placeholder="พิมพ์ชื่อสถานประกอบการ แล้วเลือกจากรายการ"
+                                    autocomplete="off"
                                 >
-                                <datalist id="self-report-company-suggestions">
-                                    @foreach ($companySuggestions as $suggestion)
-                                        <option value="{{ $suggestion }}"></option>
-                                    @endforeach
-                                </datalist>
                                 @error('company_name') <p class="text-xs text-error mt-1">{{ $message }}</p> @enderror
 
-                                {{-- ถ้าไม่มีในฐานข้อมูลของระบบ ให้ค้นต่อจาก OpenStreetMap ได้ ครอบคลุมร้านค้า
-                                     โรงงาน และกิจการที่ไม่ได้จดเป็นนิติบุคคล ซึ่งชุดข้อมูลของ DBD ไม่มี --}}
-                                {{-- ระหว่างที่ระบบกำลังไปค้นให้ --}}
-                                <div wire:loading wire:target="company_name" class="mt-2 flex items-center gap-2 text-xs text-base-content/50">
-                                    <span class="loading loading-spinner loading-xs"></span>
-                                    กำลังค้นหาชื่อสถานประกอบการ...
-                                </div>
-
-                                @if ($osmEnabled && mb_strlen(trim($company_name)) >= 3 && $companySuggestions->isEmpty())
-                                    <div class="mt-2" wire:loading.remove wire:target="company_name">
-                                        @if (! $searchedOnline)
-                                            {{-- ยังพิมพ์ไม่ถึงเกณฑ์ที่จะออกไปค้น --}}
-                                        @elseif ($onlineResults === [])
-                                            <p class="text-xs text-base-content/50">
-                                                ไม่พบชื่อนี้ทั้งในระบบและในแผนที่ — พิมพ์ชื่อเต็มได้เลย ระบบจะบันทึกไว้ให้
-                                            </p>
-                                        @else
-                                            <p class="text-xs text-base-content/50 mb-1">ชื่อที่ใกล้เคียงจากแผนที่ กดเลือกเพื่อใช้ชื่อนี้</p>
-                                            <ul class="space-y-1">
-                                                @foreach ($onlineResults as $index => $result)
-                                                    <li>
-                                                        <button type="button" wire:click="useOnlineResult({{ $index }})"
-                                                                class="w-full text-left rounded-box border border-base-300 px-3 py-2 hover:bg-base-200 transition">
-                                                            <span class="font-medium text-sm">{{ $result['name'] }}</span>
-                                                            <span class="block text-xs text-base-content/50 truncate">{{ $result['detail'] }}</span>
-                                                        </button>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                            <p class="text-[0.65rem] text-base-content/40 mt-1">ข้อมูลสถานที่จาก OpenStreetMap (ODbL)</p>
-                                        @endif
-                                    </div>
-                                @endif
+                                <x-place-suggestions
+                                    field="company_name"
+                                    kind="company"
+                                    :suggestions="$placeSuggestions['company_name'] ?? []"
+                                    :searched="$placeSearched['company_name'] ?? false"
+                                />
                             </div>
 
                             <div>
@@ -236,17 +205,19 @@
                                 <label class="label pb-1"><span class="label-text text-xs">ชื่อสถานศึกษาต่อ *</span></label>
                                 <input
                                     type="text"
-                                    wire:model.blur="institution_name"
-                                    list="self-report-institution-suggestions"
+                                    wire:model.live.debounce.700ms="institution_name"
                                     class="input input-bordered w-full"
-                                    placeholder="เช่น มหาวิทยาลัยเทคโนโลยีราชมงคล..."
+                                    placeholder="พิมพ์ชื่อสถานศึกษา แล้วเลือกจากรายการ"
+                                    autocomplete="off"
                                 >
-                                <datalist id="self-report-institution-suggestions">
-                                    @foreach ($institutionSuggestions as $suggestion)
-                                        <option value="{{ $suggestion }}"></option>
-                                    @endforeach
-                                </datalist>
                                 @error('institution_name') <p class="text-xs text-error mt-1">{{ $message }}</p> @enderror
+
+                                <x-place-suggestions
+                                    field="institution_name"
+                                    kind="institution"
+                                    :suggestions="$placeSuggestions['institution_name'] ?? []"
+                                    :searched="$placeSearched['institution_name'] ?? false"
+                                />
                             </div>
                         </div>
                     @endif

@@ -95,14 +95,22 @@ class CompanyMatchingTest extends TestCase
         Http::assertSentCount(1);
     }
 
-    public function test_a_name_already_in_the_table_is_never_looked_up_online(): void
+    public function test_local_and_map_results_are_offered_side_by_side(): void
     {
-        Http::fake();
-        Company::create(['name' => 'บริษัท มีอยู่แล้ว จำกัด']);
+        Http::fake([
+            'nominatim.openstreetmap.org/*' => Http::response([
+                ['name' => 'ร้านชื่อคล้ายกันจากแผนที่', 'display_name' => 'ร้านชื่อคล้ายกันจากแผนที่', 'address' => []],
+            ]),
+        ]);
 
-        $this->verifiedForm()->set('company_name', 'มีอยู่แล้ว');
+        Company::create(['name' => 'บริษัท ชื่อคล้ายกัน จำกัด']);
 
-        Http::assertNothingSent();
+        $this->verifiedForm()
+            ->set('company_name', 'ชื่อคล้ายกัน')
+            ->assertSee('บริษัท ชื่อคล้ายกัน จำกัด')   // จากฐานข้อมูลของระบบ
+            ->assertSee('ร้านชื่อคล้ายกันจากแผนที่')     // จากแผนที่
+            ->assertSee('ในระบบ')
+            ->assertSee('จากแผนที่');
     }
 
     public function test_a_short_term_is_not_looked_up_online(): void
@@ -145,9 +153,8 @@ class CompanyMatchingTest extends TestCase
 
         $this->verifiedForm()
             ->set('company_name', 'อู่ช่างเอ')
-            ->call('searchOnline')
             ->assertSee('อู่ช่างเอ การช่าง')
-            ->call('useOnlineResult', 0)
+            ->call('usePlaceSuggestion', 'company_name', 0)
             ->assertSet('company_name', 'อู่ช่างเอ การช่าง');
 
         // Stored for the next student, with the จังหวัด prefix stripped so it
@@ -166,7 +173,7 @@ class CompanyMatchingTest extends TestCase
         $this->verifiedForm()
             ->set('company_name', 'ร้านที่ไม่มีในระบบ')
             ->assertHasNoErrors()
-            ->assertSee('ไม่พบชื่อนี้ทั้งในระบบและในแผนที่');
+            ->assertSee('ไม่พบชื่อสถานประกอบการนี้');
     }
 
     public function test_lookups_are_cached_so_the_same_wording_is_not_asked_twice(): void

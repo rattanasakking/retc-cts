@@ -4,6 +4,7 @@ namespace App\Livewire\CareerStatuses;
 
 use App\Enums\CareerStatusType;
 use App\Enums\UserRole;
+use App\Livewire\Concerns\SuggestsPlaces;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
 use App\Models\Company;
@@ -20,6 +21,8 @@ use Livewire\Component;
 #[Title('บันทึกภาวะการมีงานทำ')]
 class CareerStatusForm extends Component
 {
+    use SuggestsPlaces;
+
     public string $studentSearch = '';
 
     public ?int $selectedStudentId = null;
@@ -131,6 +134,24 @@ class CareerStatusForm extends Component
         return $this->isWorkingStatus() || $this->isFurtherStudy();
     }
 
+    protected function placeFields(): array
+    {
+        return [
+            'company_name' => Company::COMPANY,
+            'institution_name' => Company::INSTITUTION,
+        ];
+    }
+
+    public function updatedCompanyName(): void
+    {
+        $this->refreshPlaceSuggestions('company_name');
+    }
+
+    public function updatedInstitutionName(): void
+    {
+        $this->refreshPlaceSuggestions('institution_name');
+    }
+
     protected function rules(): array
     {
         $rules = [
@@ -204,8 +225,9 @@ class CareerStatusForm extends Component
             ]);
         });
 
-        // ชื่อที่ยังไม่มีในฐานข้อมูลนิติบุคคลจะถูกเก็บไว้เป็นตัวช่วยเติมของคนถัดไป
-        Company::remember($validated['company_name'] ?? null);
+        // ชื่อที่ยังไม่มีในฐานข้อมูลสถานที่จะถูกเก็บไว้เป็นตัวช่วยเติมของคนถัดไป
+        Company::remember($validated['company_name'] ?? null, ['kind' => Company::COMPANY]);
+        Company::remember($validated['institution_name'] ?? null, ['kind' => Company::INSTITUTION]);
 
         session()->flash('success', 'บันทึกภาวะการมีงานทำเรียบร้อยแล้ว');
 
@@ -239,16 +261,6 @@ class CareerStatusForm extends Component
             'isWorkingStatus' => $this->isWorkingStatus(),
             'isFurtherStudy' => $this->isFurtherStudy(),
             'needsLocation' => $this->needsLocation(),
-            'companySuggestions' => $this->isWorkingStatus() && mb_strlen(trim($this->company_name)) >= 2
-                ? Company::matching($this->company_name)->limit(20)->pluck('name')
-                : collect(),
-            'institutionSuggestions' => $this->isFurtherStudy()
-                ? CareerStatus::whereNotNull('institution_name')
-                    ->distinct()
-                    ->orderBy('institution_name')
-                    ->limit(200)
-                    ->pluck('institution_name')
-                : collect(),
             'provinces' => ThaiProvince::orderBy('name_th')->get(),
             'districts' => $this->work_province_id
                 ? ThaiDistrict::where('province_id', $this->work_province_id)->orderBy('name_th')->get()
