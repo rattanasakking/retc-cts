@@ -150,7 +150,7 @@
                                 </label>
                                 <input
                                     type="text"
-                                    wire:model.blur="company_name"
+                                    wire:model.live.debounce.400ms="company_name"
                                     list="self-report-company-suggestions"
                                     class="input input-bordered w-full"
                                 >

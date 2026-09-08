@@ -12,6 +12,7 @@ use App\Livewire\Reports\ExportCenter;
 use App\Livewire\Reports\SelfReportUsage;
 use App\Livewire\Settings\AcademicYears as SettingsAcademicYears;
 use App\Livewire\Settings\Backup as SettingsBackup;
+use App\Livewire\Settings\Companies as SettingsCompanies;
 use App\Livewire\Settings\SystemInformation as SettingsSystemInformation;
 use App\Livewire\Settings\Users as SettingsUsers;
 use App\Livewire\Students\Index as StudentsIndex;
@@ -128,6 +129,7 @@ Route::middleware(['auth', 'role:admin'])
 Route::middleware(['auth', 'role:admin'])->prefix('settings')->name('settings.')->group(function () {
     Route::get('/academic-years', SettingsAcademicYears::class)->name('academic-years');
     Route::get('/system', SettingsSystemInformation::class)->name('system');
+    Route::get('/companies', SettingsCompanies::class)->name('companies');
     Route::get('/users', SettingsUsers::class)->name('users');
     Route::get('/backup', SettingsBackup::class)->name('backup');
 });

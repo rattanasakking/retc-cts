@@ -6,6 +6,7 @@ use App\Enums\CareerStatusType;
 use App\Enums\UserRole;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
+use App\Models\Company;
 use App\Models\Student;
 use App\Models\ThaiDistrict;
 use App\Models\ThaiProvince;
@@ -203,6 +204,9 @@ class CareerStatusForm extends Component
             ]);
         });
 
+        // ชื่อที่ยังไม่มีในฐานข้อมูลนิติบุคคลจะถูกเก็บไว้เป็นตัวช่วยเติมของคนถัดไป
+        Company::remember($validated['company_name'] ?? null);
+
         session()->flash('success', 'บันทึกภาวะการมีงานทำเรียบร้อยแล้ว');
 
         $this->reset(['studentSearch', 'selectedStudentId', 'status', 'company_name', 'position', 'monthly_salary', 'work_location', 'work_province_id', 'work_district_id', 'work_subdistrict_id', 'is_related_to_major', 'notes']);
@@ -235,6 +239,9 @@ class CareerStatusForm extends Component
             'isWorkingStatus' => $this->isWorkingStatus(),
             'isFurtherStudy' => $this->isFurtherStudy(),
             'needsLocation' => $this->needsLocation(),
+            'companySuggestions' => $this->isWorkingStatus() && mb_strlen(trim($this->company_name)) >= 2
+                ? Company::matching($this->company_name)->limit(20)->pluck('name')
+                : collect(),
             'institutionSuggestions' => $this->isFurtherStudy()
                 ? CareerStatus::whereNotNull('institution_name')
                     ->distinct()

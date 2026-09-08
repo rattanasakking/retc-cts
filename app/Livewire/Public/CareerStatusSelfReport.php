@@ -5,6 +5,7 @@ namespace App\Livewire\Public;
 use App\Enums\CareerStatusType;
 use App\Models\AcademicYear;
 use App\Models\CareerStatus;
+use App\Models\Company;
 use App\Models\SelfReportEvent;
 use App\Models\Student;
 use App\Models\ThaiDistrict;
@@ -296,6 +297,9 @@ class CareerStatusSelfReport extends Component
             ]);
         });
 
+        // ชื่อที่ยังไม่มีในฐานข้อมูลนิติบุคคลจะถูกเก็บไว้เป็นตัวช่วยเติมของคนถัดไป
+        Company::remember($validated['company_name'] ?? null);
+
         SelfReportEvent::record(SelfReportEvent::SUBMITTED, $this->verifiedStudentId);
 
         $this->step = 'done';
@@ -335,12 +339,10 @@ class CareerStatusSelfReport extends Component
                     ->limit(200)
                     ->pluck('institution_name')
                 : collect(),
-            'companySuggestions' => $this->isWorkingStatus()
-                ? CareerStatus::whereNotNull('company_name')
-                    ->distinct()
-                    ->orderBy('company_name')
-                    ->limit(200)
-                    ->pluck('company_name')
+            // ค้นตามที่พิมพ์ไปแล้ว ไม่ได้โหลดทั้งตารางมารอ — หลังนำเข้าข้อมูล DBD
+            // ตารางนี้มีได้เป็นหมื่นรายการ
+            'companySuggestions' => $this->isWorkingStatus() && mb_strlen(trim($this->company_name)) >= 2
+                ? Company::matching($this->company_name)->limit(20)->pluck('name')
                 : collect(),
             'provinces' => ThaiProvince::orderBy('name_th')->get(),
             'districts' => $this->work_province_id

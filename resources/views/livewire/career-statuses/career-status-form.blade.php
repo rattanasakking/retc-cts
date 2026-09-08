@@ -104,7 +104,18 @@
                                     {{ $status === 'entrepreneur' ? 'ชื่อกิจการ *' : 'ชื่อบริษัท *' }}
                                 </span>
                             </label>
-                            <input type="text" wire:model="company_name" class="input input-bordered w-full">
+                            <input
+                                type="text"
+                                wire:model.live.debounce.400ms="company_name"
+                                list="career-form-company-suggestions"
+                                class="input input-bordered w-full"
+                                placeholder="พิมพ์ 2 ตัวอักษรขึ้นไปเพื่อค้นจากฐานข้อมูลนิติบุคคล"
+                            >
+                            <datalist id="career-form-company-suggestions">
+                                @foreach ($companySuggestions as $suggestion)
+                                    <option value="{{ $suggestion }}"></option>
+                                @endforeach
+                            </datalist>
                             @error('company_name') <p class="text-xs text-error mt-1">{{ $message }}</p> @enderror
                         </div>
 
