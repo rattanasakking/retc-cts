@@ -21,7 +21,8 @@ class CompanyImporter
     /** Header aliases seen across the DBD datasets. */
     private const COLUMNS = [
         'name' => ['ชื่อนิติบุคคล', 'ชื่อนิติบุคคลภาษาไทย', 'ชื่อ', 'juristicnamth', 'juristicname', 'name'],
-        'juristic_id' => ['เลขทะเบียนนิติบุคคล', 'เลขทะเบียน13หลัก', 'เลขทะเบียน', 'juristicid', 'juristicno'],
+        // 'เลขทะเบียน' is what the monthly registration files actually use
+        'juristic_id' => ['เลขทะเบียน', 'เลขทะเบียนนิติบุคคล', 'เลขทะเบียน13หลัก', 'juristicid', 'juristicno'],
         'type' => ['ประเภทนิติบุคคล', 'ประเภท', 'juristictype'],
         'status' => ['สถานะนิติบุคคล', 'สถานะ', 'juristicstatus'],
         'province' => ['จังหวัด', 'จังหวัดที่ตั้ง', 'province'],

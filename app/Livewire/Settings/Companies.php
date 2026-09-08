@@ -69,10 +69,10 @@ class Companies extends Component
     {
         $this->validate(['url' => ['required', 'url', 'max:2048']]);
 
-        // openapi.dbd.go.th ไม่ใช่ไฟล์ชุดข้อมูล แต่เป็น API ค้นทีละบริษัทด้วย
-        // เลขทะเบียน 13 หลัก และต้องมี API key — วางลิงก์นี้มาแล้วจะได้ HTML
-        // หรือ 403 กลับไปเงียบ ๆ จึงบอกให้ชัดตั้งแต่ตรงนี้
-        if (str_contains($this->url, 'openapi.dbd.go.th') || str_contains($this->url, '{')) {
+        // openapi.dbd.go.th เสิร์ฟทั้งไฟล์ CSV รายเดือน (โหลดได้เลย) และ API
+        // ค้นรายบริษัทใต้ /api/ ที่ต้องมี key — ตัวหลังถ้าวางมาจะได้ 403 กลับไป
+        // เงียบ ๆ จึงดักไว้ตรงนี้ แต่ต้องไม่เผลอบล็อกไฟล์ที่ถูกต้องไปด้วย
+        if (str_contains($this->url, '/api/') || str_contains($this->url, '{')) {
             $this->addError('url', 'ลิงก์นี้เป็น API ค้นรายบริษัท (ต้องใส่เลขทะเบียน 13 หลักและมี API key) ไม่ใช่ไฟล์ชุดข้อมูล — ให้ใช้ลิงก์ไฟล์ CSV/XLSX จากชุด "นิติบุคคลจดทะเบียนตั้งใหม่" บน opendata.dbd.go.th แทน');
 
             return;

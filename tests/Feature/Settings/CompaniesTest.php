@@ -246,4 +246,46 @@ class CompaniesTest extends TestCase
         @unlink($stored);
         @unlink($path);
     }
+
+    /**
+     * The header of the real monthly file, 99_YYYYMM_1.csv, taken verbatim
+     * from the DBD portal — it names the id column "เลขทะเบียน", not
+     * "เลขทะเบียนนิติบุคคล" like the other datasets do.
+     */
+    public function test_the_real_monthly_registration_file_layout_imports(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'dbd').'.csv';
+        file_put_contents($path, chr(0xEF).chr(0xBB).chr(0xBF).
+            'เลขทะเบียน,ชื่อนิติบุคคล,วันที่จดทะเบียน,ทุนจดทะเบียน,รหัสวัตถุประสงค์,วัตถุประสงค์,ที่ตั้งสำนักงานใหญ่,ตำบล,อำเภอ,จังหวัด,รหัสไปรษณีย์
+'.
+            '0102569000140,หส.วสันต์ แพ็คกิ้ง โซลูชั่น,2569-07-25,5100,70209,ที่ปรึกษา,21/133 อาคารรีเจ้นท์,แขวงบางจาก,เขตพระโขนง,กรุงเทพมหานคร,10260
+'.
+            '0455569000111,บริษัท ร้อยเอ็ดการช่าง จำกัด,2569-07-26,1000000,41002,ก่อสร้าง,99 หมู่ 1,ในเมือง,เมืองร้อยเอ็ด,ร้อยเอ็ด,45000
+');
+
+        $result = (new CompanyImporter)->import($path, 'ร้อยเอ็ด');
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertDatabaseHas('companies', [
+            'juristic_id' => '0455569000111',
+            'name' => 'บริษัท ร้อยเอ็ดการช่าง จำกัด',
+            'province' => 'ร้อยเอ็ด',
+            'district' => 'เมืองร้อยเอ็ด',
+        ]);
+
+        unlink($path);
+    }
+
+    public function test_the_monthly_csv_url_on_the_same_host_is_not_blocked(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        // Only the /api/ lookup is rejected — the bulk files live on the same
+        // host and must still be accepted.
+        Livewire::actingAs($admin)
+            ->test(CompaniesSettings::class)
+            ->set('url', 'https://openapi.dbd.go.th/api/v1/juristic_person/0455569000111')
+            ->call('importUrl')
+            ->assertHasErrors('url');
+    }
 }
