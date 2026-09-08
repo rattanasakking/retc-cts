@@ -124,6 +124,36 @@ php artisan optimize
 
 ---
 
+## 6.5 ติดตั้งผ่านหน้า Plesk (ไม่ต้องใช้ SSH)
+
+โฮสต์ไทยหลายเจ้า เช่น HostAtom ใช้ Plesk ซึ่งมีเครื่องมือครบพอที่จะติดตั้งจากหน้าเว็บได้ทั้งหมด
+ตรวจก่อนว่าใน **Websites & Domains → Dev Tools** มี **Git** และ **PHP Composer** และที่
+**PHP** เป็นเวอร์ชัน 8.2 ขึ้นไป
+
+| ลำดับ | เมนูใน Plesk | ทำอะไร |
+| --- | --- | --- |
+| 1 | Databases → Add Database | สร้าง database + user จดชื่อและรหัสผ่านไว้ (Plesk มักเติม prefix ให้) |
+| 2 | Dev Tools → **Git** → Add Repository | Remote URL `https://github.com/rattanasakking/retc-cts.git` · branch `main` · deployment path `httpdocs` |
+| 3 | Dev Tools → **PHP Composer** | กด Install ที่โปรเจกต์ (เลือก `--no-dev`) — Plesk จะสร้าง `vendor/` ให้เอง |
+| 4 | Files | คัดลอก `.env.production.example` เป็น `.env` แล้วแก้ค่า DB, `APP_URL`, `MAIL_*` |
+| 5 | Scheduled Tasks → Run a PHP script | script `httpdocs/artisan`, arguments `key:generate --force` → **Run Now** |
+| 6 | Scheduled Tasks (ตัวเดิม) | เปลี่ยน arguments เป็น `app:install --admin-email=... --admin-password=... --college="..." --no-interaction-safe` → **Run Now** แล้วลบ task ทิ้ง |
+| 7 | Hosting & DNS → Hosting Settings | **Document root** เปลี่ยนเป็น `httpdocs/public` — ข้อนี้ห้ามลืม |
+| 8 | Security → SSL/TLS Certificates | ออกใบรับรอง Let's Encrypt แล้วเปิด redirect เป็น https |
+| 9 | Files | ตั้งสิทธิ์โฟลเดอร์ `storage` และ `bootstrap/cache` เป็น 775 |
+| 10 | Scheduled Tasks | เพิ่ม cron ตามข้อ 6 ด้านบน |
+
+ตั้ง **Additional deployment actions** ในหน้า Git ไว้ด้วย จะได้อัปเดตรอบหน้าจบในคลิกเดียว
+
+```bash
+composer install --no-dev --optimize-autoloader --no-interaction
+php artisan migrate --force
+php artisan optimize:clear
+php artisan optimize
+```
+
+---
+
 ## 7. กรณีโฮสต์ที่ไม่มี SSH
 
 ยังติดตั้งได้ แต่ต้องอ้อม
