@@ -160,6 +160,41 @@
                                     @endforeach
                                 </datalist>
                                 @error('company_name') <p class="text-xs text-error mt-1">{{ $message }}</p> @enderror
+
+                                {{-- ถ้าไม่มีในฐานข้อมูลของระบบ ให้ค้นต่อจาก OpenStreetMap ได้ ครอบคลุมร้านค้า
+                                     โรงงาน และกิจการที่ไม่ได้จดเป็นนิติบุคคล ซึ่งชุดข้อมูลของ DBD ไม่มี --}}
+                                @if ($osmEnabled && mb_strlen(trim($company_name)) >= 3 && $companySuggestions->isEmpty())
+                                    <div class="mt-2">
+                                        @if (! $searchedOnline)
+                                            <button type="button" wire:click="searchOnline" class="btn btn-outline btn-xs gap-1"
+                                                    wire:loading.attr="disabled" wire:target="searchOnline">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                                </svg>
+                                                <span wire:loading.remove wire:target="searchOnline">ไม่พบชื่อนี้ — ค้นหาจากแผนที่ OpenStreetMap</span>
+                                                <span wire:loading wire:target="searchOnline">กำลังค้นหา...</span>
+                                            </button>
+                                        @elseif ($onlineResults === [])
+                                            <p class="text-xs text-base-content/50">
+                                                ไม่พบในแผนที่เช่นกัน — พิมพ์ชื่อเต็มได้เลย ระบบจะบันทึกไว้ให้
+                                            </p>
+                                        @else
+                                            <p class="text-xs text-base-content/50 mb-1">พบในแผนที่ กดเลือกเพื่อใช้ชื่อนี้</p>
+                                            <ul class="space-y-1">
+                                                @foreach ($onlineResults as $index => $result)
+                                                    <li>
+                                                        <button type="button" wire:click="useOnlineResult({{ $index }})"
+                                                                class="w-full text-left rounded-box border border-base-300 px-3 py-2 hover:bg-base-200 transition">
+                                                            <span class="font-medium text-sm">{{ $result['name'] }}</span>
+                                                            <span class="block text-xs text-base-content/50 truncate">{{ $result['detail'] }}</span>
+                                                        </button>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                            <p class="text-[0.65rem] text-base-content/40 mt-1">ข้อมูลสถานที่จาก OpenStreetMap (ODbL)</p>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
 
                             <div>

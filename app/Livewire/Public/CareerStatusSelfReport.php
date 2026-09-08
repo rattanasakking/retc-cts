@@ -11,6 +11,7 @@ use App\Models\Student;
 use App\Models\ThaiDistrict;
 use App\Models\ThaiProvince;
 use App\Models\ThaiSubdistrict;
+use App\Support\OpenStreetMapCompanies;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -70,6 +71,15 @@ class CareerStatusSelfReport extends Component
 
     /** ชื่อสถานที่ที่ระบบดึงที่ตั้งมาให้อัตโนมัติ (ว่าง = ไม่ได้ดึงให้) */
     public string $autofilledLocationFor = '';
+
+    /**
+     * ผลค้นหาจาก OpenStreetMap — ว่างไว้จนกว่าผู้ใช้จะกดปุ่มค้นหาเอง
+     *
+     * @var array<int, array{name: string, province: ?string, district: ?string, detail: string}>
+     */
+    public array $onlineResults = [];
+
+    public bool $searchedOnline = false;
 
     public function mount(): void
     {
@@ -178,7 +188,44 @@ class CareerStatusSelfReport extends Component
 
     public function updatedCompanyName(): void
     {
+        $this->onlineResults = [];
+        $this->searchedOnline = false;
         $this->applyKnownLocation($this->company_name, 'company_name');
+    }
+
+    /**
+     * ค้นชื่อสถานประกอบการจาก OpenStreetMap — เรียกเมื่อกดปุ่มเท่านั้น
+     * ไม่ได้ยิงทุกครั้งที่พิมพ์ ตามนโยบายการใช้งานของผู้ให้บริการ
+     */
+    public function searchOnline(OpenStreetMapCompanies $osm): void
+    {
+        $this->searchedOnline = true;
+        $this->onlineResults = $osm->search($this->company_name);
+    }
+
+    /** เลือกผลจาก OpenStreetMap มาใส่ในฟอร์ม แล้วเก็บเข้าฐานข้อมูลของระบบ */
+    public function useOnlineResult(int $index): void
+    {
+        $result = $this->onlineResults[$index] ?? null;
+
+        if (! $result) {
+            return;
+        }
+
+        $this->company_name = $result['name'];
+        $this->onlineResults = [];
+        $this->searchedOnline = false;
+
+        Company::remember($result['name'], [
+            'source' => 'osm',
+            'province' => $result['province'],
+            'district' => $result['district'],
+        ]);
+
+        // ถ้าจังหวัดที่ OSM ให้มาตรงกับในระบบ ก็เลือกให้เลย เหลือแค่เลือกอำเภอ/ตำบล
+        if (! $this->work_province_id && $result['province']) {
+            $this->work_province_id = ThaiProvince::where('name_th', $result['province'])->value('id');
+        }
     }
 
     /**
@@ -344,6 +391,7 @@ class CareerStatusSelfReport extends Component
             'companySuggestions' => $this->isWorkingStatus() && mb_strlen(trim($this->company_name)) >= 2
                 ? Company::matching($this->company_name)->limit(20)->pluck('name')
                 : collect(),
+            'osmEnabled' => app(OpenStreetMapCompanies::class)->enabled(),
             'provinces' => ThaiProvince::orderBy('name_th')->get(),
             'districts' => $this->work_province_id
                 ? ThaiDistrict::where('province_id', $this->work_province_id)->orderBy('name_th')->get()
