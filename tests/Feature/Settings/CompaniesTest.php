@@ -145,6 +145,33 @@ class CompaniesTest extends TestCase
         ]);
     }
 
+    public function test_migrating_seeds_the_places_table_from_career_statuses_without_a_button(): void
+    {
+        $year = AcademicYear::factory()->create();
+        $student = Student::factory()->create(['academic_year_id' => $year->id]);
+
+        CareerStatus::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'company_name' => 'บริษัท มาจากตอน migrate จำกัด',
+        ]);
+        CareerStatus::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'institution_name' => 'มหาวิทยาลัยมาจากตอน migrate',
+        ]);
+
+        // The factory rows above did not go through the form, so nothing has
+        // been remembered yet — exactly the state of a college that imported
+        // its students before this lookup existed.
+        $this->assertDatabaseCount('companies', 0);
+
+        (require database_path('migrations/2026_09_10_100001_seed_places_from_career_statuses.php'))->up();
+
+        $this->assertDatabaseHas('companies', ['name' => 'บริษัท มาจากตอน migrate จำกัด', 'kind' => Company::COMPANY]);
+        $this->assertDatabaseHas('companies', ['name' => 'มหาวิทยาลัยมาจากตอน migrate', 'kind' => Company::INSTITUTION]);
+    }
+
     public function test_matching_puts_prefix_matches_first(): void
     {
         Company::create(['name' => 'ห้างหุ้นส่วนจำกัด ทดสอบการช่าง']);

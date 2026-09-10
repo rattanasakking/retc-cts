@@ -15,10 +15,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 window.L = L;
 
-const THAI_MONTHS = [
-    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
-];
 const THAI_WEEKDAYS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 
 document.addEventListener('alpine:init', () => {
@@ -27,7 +23,6 @@ document.addEventListener('alpine:init', () => {
         isoValue: $wire.entangle(prop),
         viewYear: null,
         viewMonth: null,
-        thaiMonths: THAI_MONTHS,
         weekdayLabels: THAI_WEEKDAYS,
 
         // defaultYear (AD) lets a field open on a year that suits it rather

@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Enums\CareerStatusType;
 use App\Imports\Concerns\ImportsStudentRow;
 use App\Models\CareerStatus;
+use App\Models\Company;
 use App\Models\ImportLog;
 use App\Models\Student;
 use App\Support\AuditLogger;
@@ -136,6 +137,12 @@ class SchoolJobTrackingImport implements OnEachRow, ShouldQueue, WithChunkReadin
         // Suppress CareerStatusObserver's per-record admin notification —
         // a bulk import creating hundreds of rows would otherwise flood
         // every admin's email/LINE with one message per student.
+        // The names go into the places table as well, so the suggestion list
+        // knows every workplace and institution on file from the first import
+        // — not only the ones typed into a form afterwards.
+        Company::remember($workplace, ['kind' => Company::COMPANY]);
+        Company::remember($furtherStudyInstitution, ['kind' => Company::INSTITUTION]);
+
         CareerStatus::withoutEvents(function () use ($student, $cells, $workplace, $position, $salary, $furtherStudyInstitution, $isEmployed) {
             if ($isEmployed) {
                 CareerStatus::create([

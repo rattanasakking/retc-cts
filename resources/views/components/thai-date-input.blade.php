@@ -14,6 +14,13 @@
     $defaultYearAd = $defaultYear !== null
         ? min(max((int) $defaultYear - 543, $firstYear), $lastYear)
         : null;
+
+    // Same reasoning for the months: rendered here so the <select> has its
+    // options before Alpine binds to it.
+    $thaiMonths = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+    ];
 @endphp
 
 <div x-data="thaiDateInput($wire, @js($wireModel), {{ $defaultYearAd ?? 'null' }})" class="relative">
@@ -33,17 +40,24 @@
         x-transition.opacity.duration.100ms
         class="absolute z-20 mt-1 w-72 bg-base-100 rounded-box shadow-lg border border-base-300 p-3"
     >
-        <div class="flex items-center justify-between mb-2 gap-1">
-            <button type="button" @click="prevMonth()" class="btn btn-ghost btn-xs" aria-label="เดือนก่อนหน้า">‹</button>
-            <div class="flex items-center gap-1 text-sm font-semibold">
-                <span x-text="thaiMonths[viewMonth]"></span>
-                <select x-model.number="viewYear" class="select select-ghost select-xs">
-                    @for ($year = $firstYear; $year <= $lastYear; $year++)
-                        <option value="{{ $year }}">{{ $year + 543 }}</option>
-                    @endfor
-                </select>
-            </div>
-            <button type="button" @click="nextMonth()" class="btn btn-ghost btn-xs" aria-label="เดือนถัดไป">›</button>
+        {{-- เดือนและปีเป็น dropdown ทั้งคู่ กระโดดไปเดือนที่ต้องการได้ทันที
+             ไม่ต้องกดลูกศรทีละเดือน --}}
+        <div class="flex items-center gap-1 mb-3">
+            <button type="button" @click="prevMonth()" class="btn btn-ghost btn-sm btn-square shrink-0" aria-label="เดือนก่อนหน้า">‹</button>
+
+            <select x-model.number="viewMonth" class="select select-bordered select-sm flex-1 min-w-0 font-semibold" aria-label="เดือน">
+                @foreach ($thaiMonths as $index => $month)
+                    <option value="{{ $index }}">{{ $month }}</option>
+                @endforeach
+            </select>
+
+            <select x-model.number="viewYear" class="select select-bordered select-sm w-24 shrink-0 font-semibold" aria-label="ปี พ.ศ.">
+                @for ($year = $firstYear; $year <= $lastYear; $year++)
+                    <option value="{{ $year }}">{{ $year + 543 }}</option>
+                @endfor
+            </select>
+
+            <button type="button" @click="nextMonth()" class="btn btn-ghost btn-sm btn-square shrink-0" aria-label="เดือนถัดไป">›</button>
         </div>
 
         <div class="grid grid-cols-7 gap-1 text-center text-xs text-base-content/50 mb-1">

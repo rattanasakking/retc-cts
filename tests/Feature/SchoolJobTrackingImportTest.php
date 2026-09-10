@@ -118,6 +118,30 @@ class SchoolJobTrackingImportTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_imported_workplaces_and_institutions_feed_the_suggestion_list(): void
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+        $csv = $this->reportCsv(
+            'สมชาย ใจดี,,ประกาศนียบัตรวิชาชีพ 3,,อุตสาหกรรม,,2569,,67-00001,,,,,,,,,,,,,บริษัท ทดสอบ จำกัด,พนักงาน,,ตรง,ตรง,2569,ปกติ',
+            'มานี มีนา,,ประกาศนียบัตรวิชาชีพ 3,,อุตสาหกรรม,,2569,,67-00003,,,,,,,,,วิทยาลัยเทคนิคทดสอบ,ตรง,,,,,,,,2569,ปกติ',
+        );
+
+        Livewire::actingAs($admin)
+            ->test(StudentImporter::class)
+            ->set('format', 'school_report')
+            ->set('file', $csv)
+            ->call('import');
+
+        // Each name lands in the places table under its own kind, so the
+        // next student typing it gets a local match rather than map-only.
+        $this->assertDatabaseHas('companies', ['name' => 'บริษัท ทดสอบ จำกัด', 'kind' => 'company']);
+        $this->assertDatabaseHas('companies', ['name' => 'วิทยาลัยเทคนิคทดสอบ', 'kind' => 'institution']);
+    }
+
     public function test_birth_date_column_is_parsed_from_dd_mm_yyyy_gregorian_into_a_stored_date(): void
     {
         Storage::fake('local');
