@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Throwable;
 
 /**
  * A juristic person the workplace field can autocomplete to. Rows come from
@@ -116,6 +117,12 @@ class Company extends Model
             return;
         }
 
-        static::firstOrCreate(['name' => $name], array_merge(['source' => 'entered'], $attributes));
+        // Remembering is a courtesy to the next person filling the form; it
+        // must never cost this one their submission.
+        try {
+            static::firstOrCreate(['name' => $name], array_merge(['source' => 'entered'], $attributes));
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 }

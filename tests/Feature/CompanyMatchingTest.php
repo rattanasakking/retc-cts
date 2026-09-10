@@ -9,6 +9,7 @@ use App\Models\Student;
 use App\Support\OpenStreetMapCompanies;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -174,6 +175,29 @@ class CompanyMatchingTest extends TestCase
             ->set('company_name', 'ร้านที่ไม่มีในระบบ')
             ->assertHasNoErrors()
             ->assertSee('ไม่พบชื่อสถานประกอบการนี้');
+    }
+
+    public function test_the_form_still_works_when_the_database_is_behind_on_migrations(): void
+    {
+        Http::fake();
+
+        // A college that pulled the code but never ran migrate: the columns
+        // the lookup relies on are not there. Typing must still not error out,
+        // and the submission must still go through.
+        Schema::table('companies', function ($table) {
+            $table->dropIndex(['kind', 'search_name']);
+            $table->dropIndex(['search_name']);
+            $table->dropColumn(['kind', 'search_name']);
+        });
+
+        $this->verifiedForm()
+            ->set('company_name', 'ร้านที่ค้นไม่ได้')
+            ->assertHasNoErrors()
+            ->assertSet('placeSuggestions.company_name', []);
+
+        Company::remember('ร้านที่ค้นไม่ได้', ['kind' => Company::COMPANY]);
+
+        $this->assertDatabaseMissing('companies', ['name' => 'ร้านที่ค้นไม่ได้']);
     }
 
     public function test_lookups_are_cached_so_the_same_wording_is_not_asked_twice(): void

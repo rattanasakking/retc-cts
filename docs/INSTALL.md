@@ -199,6 +199,18 @@ php artisan optimize:clear && php artisan optimize
 
 ไฟล์ frontend ที่ build แล้วมากับ git จึงไม่ต้องรัน npm บนเซิร์ฟเวอร์
 
+### ขึ้น 500 หลังอัปเดต
+
+เกือบทุกครั้งคือลืม `migrate` — ตารางยังเป็นโครงสร้างเก่า แต่โค้ดใหม่คาดว่ามีคอลัมน์เพิ่ม ดูสาเหตุจริงได้ที่บรรทัดท้ายของ `storage/logs/laravel.log` และเช็กว่ามี migration ค้างไหมด้วย
+
+```bash
+php artisan migrate:status | grep Pending
+php artisan migrate --force
+php artisan optimize:clear && php artisan optimize
+```
+
+หน้าแจ้งข้อมูลของนักศึกษาถูกออกแบบให้ยังกรอกและส่งได้แม้ค้นหาชื่อสถานที่ไม่ได้ — ถ้าค้นแล้วไม่ขึ้นรายการเลยทั้งที่ควรมี ให้ดู log ตามข้างต้น
+
 ---
 
 ## 10. เรื่องที่ต้องรับผิดชอบเอง

@@ -5,6 +5,7 @@ namespace App\Livewire\Concerns;
 use App\Models\Company;
 use App\Models\ThaiProvince;
 use App\Support\PlaceSuggestions;
+use Throwable;
 
 /**
  * Shared behaviour for every field that names a place — the workplace and the
@@ -48,7 +49,17 @@ trait SuggestsPlaces
             return;
         }
 
-        $this->placeSuggestions[$field] = app(PlaceSuggestions::class)->for($term, $kind);
+        // Suggestions are a convenience. If the lookup fails — most often a
+        // database that has not had the latest migrations run — the person
+        // typing gets no list, not an error page, and can still type the
+        // name in full.
+        try {
+            $this->placeSuggestions[$field] = app(PlaceSuggestions::class)->for($term, $kind);
+        } catch (Throwable $e) {
+            report($e);
+            $this->placeSuggestions[$field] = [];
+        }
+
         $this->placeSearched[$field] = true;
     }
 
