@@ -203,6 +203,31 @@ class StudentManagementTest extends TestCase
             ->assertDontSee('จบแล้ว');
     }
 
+    public function test_filter_by_program_and_degree_level(): void
+    {
+        $year = AcademicYear::factory()->create();
+
+        Student::factory()->create(['academic_year_id' => $year->id, 'program' => 'ช่างยนต์', 'degree_level' => 'ปวช.', 'first_name' => 'คนช่างยนต์']);
+        Student::factory()->create(['academic_year_id' => $year->id, 'program' => 'การบัญชี', 'degree_level' => 'ปวส.', 'first_name' => 'คนบัญชี']);
+
+        $user = User::factory()->create();
+
+        Livewire::actingAs($user)
+            ->test(Index::class)
+            ->assertSee('ช่างยนต์')          // ตัวเลือกในช่องกรองมาจากข้อมูลจริง
+            ->assertSee('การบัญชี')
+            ->set('filterProgram', 'ช่างยนต์')
+            ->assertSee('คนช่างยนต์')
+            ->assertDontSee('คนบัญชี')
+            ->set('filterProgram', '')
+            ->set('filterDegreeLevel', 'ปวส.')
+            ->assertSee('คนบัญชี')
+            ->assertDontSee('คนช่างยนต์')
+            ->call('resetFilters')
+            ->assertSet('filterDegreeLevel', '')
+            ->assertSee('คนช่างยนต์');
+    }
+
     public function test_the_list_shows_when_and_how_each_student_was_last_updated(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin]);

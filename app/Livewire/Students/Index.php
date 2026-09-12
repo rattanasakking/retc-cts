@@ -25,6 +25,12 @@ class Index extends Component
 
     public string $filterStatus = '';
 
+    /** '' = ทุกแผนกวิชา */
+    public string $filterProgram = '';
+
+    /** '' = ทุกระดับชั้น */
+    public string $filterDegreeLevel = '';
+
     public int $perPage = 15;
 
     public bool $showFormModal = false;
@@ -77,9 +83,19 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function updatingFilterProgram(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterDegreeLevel(): void
+    {
+        $this->resetPage();
+    }
+
     public function resetFilters(): void
     {
-        $this->reset('search', 'filterAcademicYearId', 'filterStatus');
+        $this->reset('search', 'filterAcademicYearId', 'filterStatus', 'filterProgram', 'filterDegreeLevel');
         $this->resetPage();
     }
 
@@ -221,6 +237,8 @@ class Index extends Component
             })
             ->when($this->filterAcademicYearId, fn ($query) => $query->where('academic_year_id', $this->filterAcademicYearId))
             ->when($this->filterStatus, fn ($query) => $query->where('status', $this->filterStatus))
+            ->when($this->filterProgram, fn ($query) => $query->where('program', $this->filterProgram))
+            ->when($this->filterDegreeLevel, fn ($query) => $query->where('degree_level', $this->filterDegreeLevel))
             ->orderByDesc('created_at')
             ->paginate($this->perPage);
 
@@ -234,6 +252,9 @@ class Index extends Component
         return view('livewire.students.index', [
             'students' => $students,
             'academicYears' => AcademicYear::orderByDesc('year')->get(),
+            // ตัวเลือกมาจากค่าที่มีอยู่จริงในข้อมูล — แต่ละวิทยาลัยตั้งชื่อแผนกและระดับต่างกัน
+            'programs' => Student::query()->whereNotNull('program')->where('program', '!=', '')->distinct()->orderBy('program')->pluck('program'),
+            'degreeLevels' => Student::query()->whereNotNull('degree_level')->where('degree_level', '!=', '')->distinct()->orderBy('degree_level')->pluck('degree_level'),
             'canManage' => auth()->user()->hasRole(UserRole::Admin, UserRole::DepartmentHead),
         ]);
     }

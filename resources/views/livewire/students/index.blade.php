@@ -67,9 +67,23 @@
                     <option value="graduated">จบการศึกษา</option>
                     <option value="dropped_out">ออกกลางคัน</option>
                 </select>
+
+                <select wire:model.live="filterProgram" class="select select-bordered">
+                    <option value="">ทุกแผนกวิชา</option>
+                    @foreach ($programs as $programOption)
+                        <option value="{{ $programOption }}">{{ $programOption }}</option>
+                    @endforeach
+                </select>
+
+                <select wire:model.live="filterDegreeLevel" class="select select-bordered">
+                    <option value="">ทุกระดับชั้น</option>
+                    @foreach ($degreeLevels as $level)
+                        <option value="{{ $level }}">{{ $level }}</option>
+                    @endforeach
+                </select>
             </div>
 
-            @if ($search || $filterAcademicYearId || $filterStatus)
+            @if ($search || $filterAcademicYearId || $filterStatus || $filterProgram || $filterDegreeLevel)
                 <button type="button" wire:click="resetFilters" class="btn btn-ghost btn-xs mt-2 w-fit">ล้างตัวกรองทั้งหมด</button>
             @endif
         </div>
@@ -84,7 +98,7 @@
                         <th>รหัสนักศึกษา</th>
                         <th>ชื่อ-สกุล</th>
                         <th>ปีการศึกษา</th>
-                        <th>สาขาวิชา</th>
+                        <th>แผนกวิชา / ระดับชั้น</th>
                         <th>สถานะ</th>
                         <th>ปรับปรุงข้อมูลล่าสุด</th>
                         @if ($canManage)
@@ -108,7 +122,12 @@
                                 <a href="{{ route('students.show', $student) }}" wire:navigate class="link link-hover link-primary">{{ $student->prefix }}{{ $student->first_name }} {{ $student->last_name }}</a>
                             </td>
                             <td>{{ $student->academicYear?->year }}</td>
-                            <td>{{ $student->program ?: '—' }}</td>
+                            <td class="text-sm">
+                                <p>{{ $student->program ?: '—' }}</p>
+                                @if ($student->degree_level)
+                                    <p class="text-xs text-base-content/50">{{ $student->degree_level }}</p>
+                                @endif
+                            </td>
                             <td>
                                 <span @class([
                                     'badge badge-sm',
@@ -188,7 +207,7 @@
                     </div>
                     <div class="text-sm text-base-content/70 grid grid-cols-2 gap-1">
                         <span>ปีการศึกษา {{ $student->academicYear?->year }}</span>
-                        <span class="text-right">{{ $student->program ?: '—' }}</span>
+                        <span class="text-right">{{ implode(' · ', array_filter([$student->program, $student->degree_level])) ?: '—' }}</span>
                     </div>
                     <div class="flex items-center justify-between gap-2 text-xs text-base-content/60">
                         <span>ปรับปรุง {{ $student->last_updated_at->format('d/m/').($student->last_updated_at->format('Y') + 543) }} · {{ $student->last_updated_human }}</span>
