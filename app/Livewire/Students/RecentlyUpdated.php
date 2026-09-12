@@ -26,6 +26,12 @@ class RecentlyUpdated extends Component
 
     public ?int $filterAcademicYearId = null;
 
+    /** '' = ทุกแผนกวิชา */
+    public string $filterProgram = '';
+
+    /** '' = ทุกระดับชั้น */
+    public string $filterDegreeLevel = '';
+
     /** '' = ทุกแหล่ง, 'student' = แก้ที่ประวัตินักศึกษา, 'career_status' = แก้ที่ภาวะการมีงานทำ */
     public string $filterSource = '';
 
@@ -60,6 +66,16 @@ class RecentlyUpdated extends Component
         $this->resetPage();
     }
 
+    public function updatingFilterProgram(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterDegreeLevel(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatingFilterSource(): void
     {
         $this->resetPage();
@@ -77,7 +93,7 @@ class RecentlyUpdated extends Component
 
     public function resetFilters(): void
     {
-        $this->reset('search', 'filterAcademicYearId', 'filterSource', 'filterVcop', 'days');
+        $this->reset('search', 'filterAcademicYearId', 'filterProgram', 'filterDegreeLevel', 'filterSource', 'filterVcop', 'days');
         $this->resetPage();
     }
 
@@ -185,6 +201,8 @@ class RecentlyUpdated extends Component
                 });
             })
             ->when($this->filterAcademicYearId, fn ($query) => $query->where('academic_year_id', $this->filterAcademicYearId))
+            ->when($this->filterProgram, fn ($query) => $query->where('program', $this->filterProgram))
+            ->when($this->filterDegreeLevel, fn ($query) => $query->where('degree_level', $this->filterDegreeLevel))
             ->when($this->days > 0, fn ($query) => $query->whereRaw("{$lastUpdated} >= ?", [now()->subDays($this->days)]))
             ->when(
                 $this->filterSource === 'career_status',
@@ -349,6 +367,9 @@ class RecentlyUpdated extends Component
             'students' => $students,
             'viewingStudent' => $viewingStudent,
             'academicYears' => AcademicYear::orderByDesc('year')->get(),
+            // ตัวเลือกมาจากค่าที่มีอยู่จริงในข้อมูล ไม่ได้ fix ไว้ — แต่ละวิทยาลัยตั้งชื่อแผนกและระดับต่างกัน
+            'programs' => Student::query()->whereNotNull('program')->where('program', '!=', '')->distinct()->orderBy('program')->pluck('program'),
+            'degreeLevels' => Student::query()->whereNotNull('degree_level')->where('degree_level', '!=', '')->distinct()->orderBy('degree_level')->pluck('degree_level'),
             'editors' => $this->latestEditorsFor($students->getCollection()->pluck('id')->all()),
             'vcopStatus' => $this->vcopStatusFor($students->getCollection()->pluck('id')->all()),
             'canMarkVcop' => auth()->user()->hasRole(UserRole::Admin, UserRole::Teacher, UserRole::DepartmentHead),

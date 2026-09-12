@@ -119,6 +119,33 @@ class StudentRecentlyUpdatedTest extends TestCase
             ->assertDontSee('มานะ');
     }
 
+    public function test_program_and_degree_level_filters_narrow_the_list(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $year = AcademicYear::factory()->create();
+
+        $auto = $this->studentUpdatedAt($year, 'มานะ', now()->subHour()->toDateTimeString());
+        $auto->update(['program' => 'ช่างยนต์', 'degree_level' => 'ปวช.']);
+
+        $it = $this->studentUpdatedAt($year, 'ปิติ', now()->subHour()->toDateTimeString());
+        $it->update(['program' => 'เทคโนโลยีสารสนเทศ', 'degree_level' => 'ปวส.']);
+
+        Livewire::actingAs($admin)
+            ->test(RecentlyUpdated::class)
+            ->assertSee('มานะ')
+            ->assertSee('ปิติ')
+            ->set('filterProgram', 'ช่างยนต์')
+            ->assertSee('มานะ')
+            ->assertDontSee('ปิติ')
+            ->set('filterProgram', '')
+            ->set('filterDegreeLevel', 'ปวส.')
+            ->assertSee('ปิติ')
+            ->assertDontSee('มานะ')
+            ->call('resetFilters')
+            ->assertSet('filterDegreeLevel', '')
+            ->assertSee('มานะ');
+    }
+
     public function test_clicking_a_student_opens_the_detail_popup_and_closing_hides_it(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin]);

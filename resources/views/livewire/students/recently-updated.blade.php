@@ -37,8 +37,8 @@
     {{-- Search & filters --}}
     <div class="card bg-base-100 shadow">
         <div class="card-body p-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                <label class="input input-bordered flex items-center gap-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <label class="input input-bordered flex items-center gap-2 lg:col-span-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                     </svg>
@@ -65,6 +65,20 @@
                     @endforeach
                 </select>
 
+                <select wire:model.live="filterProgram" class="select select-bordered">
+                    <option value="">ทุกแผนกวิชา</option>
+                    @foreach ($programs as $programOption)
+                        <option value="{{ $programOption }}">{{ $programOption }}</option>
+                    @endforeach
+                </select>
+
+                <select wire:model.live="filterDegreeLevel" class="select select-bordered">
+                    <option value="">ทุกระดับชั้น</option>
+                    @foreach ($degreeLevels as $level)
+                        <option value="{{ $level }}">{{ $level }}</option>
+                    @endforeach
+                </select>
+
                 <select wire:model.live="filterSource" class="select select-bordered">
                     <option value="">ทุกประเภทการปรับปรุง</option>
                     <option value="student">ข้อมูลนักศึกษา</option>
@@ -78,7 +92,7 @@
                 </select>
             </div>
 
-            @if ($search || $filterAcademicYearId || $filterSource || $filterVcop || $days !== 30)
+            @if ($search || $filterAcademicYearId || $filterProgram || $filterDegreeLevel || $filterSource || $filterVcop || $days !== 30)
                 <button type="button" wire:click="resetFilters" class="btn btn-ghost btn-xs mt-2 w-fit">ล้างตัวกรองทั้งหมด</button>
             @endif
         </div>
@@ -92,6 +106,7 @@
                     <tr>
                         <th>รหัสนักศึกษา</th>
                         <th>ชื่อ-สกุล</th>
+                        <th>แผนกวิชา / ระดับชั้น</th>
                         <th>ปีการศึกษา</th>
                         <th>ปรับปรุงล่าสุด</th>
                         <th>ประเภท</th>
@@ -112,6 +127,12 @@
                             </td>
                             <td>
                                 <button type="button" wire:click="openDetail({{ $student->id }})" class="link link-hover link-primary text-left">{{ $student->prefix }}{{ $student->first_name }} {{ $student->last_name }}</button>
+                            </td>
+                            <td class="text-sm">
+                                <p>{{ $student->program ?: '—' }}</p>
+                                @if ($student->degree_level)
+                                    <p class="text-xs text-base-content/50">{{ $student->degree_level }}</p>
+                                @endif
                             </td>
                             <td>{{ $student->academicYear?->year }}</td>
                             <td class="whitespace-nowrap">
@@ -137,7 +158,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-base-content/60 py-8">ไม่พบข้อมูลนักศึกษาที่ปรับปรุงในช่วงเวลาที่เลือก</td>
+                            <td colspan="8" class="text-center text-base-content/60 py-8">ไม่พบข้อมูลนักศึกษาที่ปรับปรุงในช่วงเวลาที่เลือก</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -164,6 +185,9 @@
                             {{ $fromCareer ? 'ภาวะการมีงานทำ' : 'ข้อมูลนักศึกษา' }}
                         </span>
                     </div>
+                    @if ($student->program || $student->degree_level)
+                        <p class="text-xs text-base-content/60">{{ implode(' · ', array_filter([$student->program, $student->degree_level])) }}</p>
+                    @endif
                     <div class="text-sm text-base-content/70 grid grid-cols-2 gap-1">
                         <span>ปีการศึกษา {{ $student->academicYear?->year }}</span>
                         <span class="text-right">{{ $student->last_updated_human }}</span>
