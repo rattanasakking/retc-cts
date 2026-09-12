@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Livewire\Students\Index;
 use App\Models\AcademicYear;
+use App\Models\CareerStatus;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -199,6 +201,29 @@ class StudentManagementTest extends TestCase
             ->set('filterStatus', 'studying')
             ->assertSee('กำลังเรียน')
             ->assertDontSee('จบแล้ว');
+    }
+
+    public function test_the_list_shows_when_and_how_each_student_was_last_updated(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $year = AcademicYear::factory()->create();
+
+        $untouched = Student::factory()->create(['academic_year_id' => $year->id, 'first_name' => 'ยังไม่มีข้อมูล']);
+
+        $reported = Student::factory()->create(['academic_year_id' => $year->id, 'first_name' => 'แจ้งเอง']);
+        CareerStatus::factory()->create([
+            'student_id' => $reported->id,
+            'academic_year_id' => $year->id,
+            'source' => 'self_report',
+        ]);
+        // ให้ภาวะการมีงานทำใหม่กว่าแถวนักศึกษาอย่างชัดเจน
+        DB::table('students')->where('id', $reported->id)->update(['updated_at' => now()->subDay()]);
+
+        Livewire::actingAs($admin)
+            ->test(Index::class)
+            ->assertSee('ปรับปรุงข้อมูลล่าสุด')
+            ->assertSee('ยังไม่มีภาวะการมีงานทำ')
+            ->assertSee('นักศึกษาแจ้งด้วยตนเอง');
     }
 
     public function test_pagination_limits_results_per_page(): void

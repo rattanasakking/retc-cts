@@ -5,6 +5,8 @@ namespace App\Livewire\Students;
 use App\Enums\UserRole;
 use App\Models\AcademicYear;
 use App\Models\Student;
+use App\Support\ThaiDate;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -206,7 +208,8 @@ class Index extends Component
     public function render()
     {
         $students = Student::query()
-            ->with('academicYear')
+            ->with(['academicYear', 'latestCareerStatus'])
+            ->withLastUpdated()
             ->when($this->search, function ($query) {
                 $term = '%'.$this->search.'%';
                 $query->where(function ($q) use ($term) {
@@ -220,6 +223,13 @@ class Index extends Component
             ->when($this->filterStatus, fn ($query) => $query->where('status', $this->filterStatus))
             ->orderByDesc('created_at')
             ->paginate($this->perPage);
+
+        // คอลัมน์คำนวณกลับมาเป็นสตริง จึงแปลงเป็น Carbon ให้วิวใช้ได้เลย
+        $students->getCollection()->each(function (Student $student) {
+            $student->last_updated_at = Carbon::parse($student->last_updated_at);
+            $student->career_updated_at = $student->career_updated_at ? Carbon::parse($student->career_updated_at) : null;
+            $student->last_updated_human = ThaiDate::relative($student->last_updated_at);
+        });
 
         return view('livewire.students.index', [
             'students' => $students,

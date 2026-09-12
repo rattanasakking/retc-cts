@@ -86,6 +86,7 @@
                         <th>ปีการศึกษา</th>
                         <th>สาขาวิชา</th>
                         <th>สถานะ</th>
+                        <th>ปรับปรุงข้อมูลล่าสุด</th>
                         @if ($canManage)
                             <th class="text-right">จัดการ</th>
                         @endif
@@ -93,6 +94,12 @@
                 </thead>
                 <tbody>
                     @forelse ($students as $student)
+                        @php
+                            // ที่มาของการปรับปรุงล่าสุด: ภาวะการมีงานทำใหม่กว่าแถวนักศึกษา
+                            // หรือเปล่า และถ้าใช่ นักศึกษาแจ้งเองผ่านหน้าสาธารณะไหม
+                            $fromCareer = $student->career_updated_at && $student->career_updated_at->gt($student->updated_at);
+                            $selfReported = $fromCareer && $student->latestCareerStatus?->source === 'self_report';
+                        @endphp
                         <tr wire:key="student-row-{{ $student->id }}">
                             <td class="font-mono text-sm">
                                 <a href="{{ route('students.show', $student) }}" wire:navigate class="link link-hover link-primary">{{ $student->student_code }}</a>
@@ -117,6 +124,23 @@
                                     } }}
                                 </span>
                             </td>
+                            <td class="whitespace-nowrap text-sm">
+                                <p>
+                                    {{ $student->last_updated_at->format('d/m/').($student->last_updated_at->format('Y') + 543) }}
+                                    <span class="text-xs text-base-content/50">{{ $student->last_updated_human }}</span>
+                                </p>
+                                <span @class([
+                                    'badge badge-xs',
+                                    'badge-success' => $selfReported,
+                                    'badge-warning' => $fromCareer && ! $selfReported,
+                                    'badge-ghost' => ! $fromCareer,
+                                ])>
+                                    {{ $selfReported ? 'นักศึกษาแจ้งด้วยตนเอง' : ($fromCareer ? 'ภาวะการมีงานทำ' : 'ข้อมูลนักศึกษา') }}
+                                </span>
+                                @unless ($student->career_updated_at)
+                                    <span class="badge badge-xs badge-outline badge-error">ยังไม่มีภาวะการมีงานทำ</span>
+                                @endunless
+                            </td>
                             @if ($canManage)
                                 <td class="text-right space-x-1 whitespace-nowrap">
                                     <button type="button" wire:click="openEditModal({{ $student->id }})" class="btn btn-ghost btn-xs">แก้ไข</button>
@@ -126,7 +150,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $canManage ? 6 : 5 }}" class="text-center text-base-content/60 py-8">ไม่พบข้อมูลนักศึกษา</td>
+                            <td colspan="{{ $canManage ? 7 : 6 }}" class="text-center text-base-content/60 py-8">ไม่พบข้อมูลนักศึกษา</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -137,6 +161,10 @@
     {{-- Mobile cards --}}
     <div class="space-y-3 md:hidden">
         @forelse ($students as $student)
+            @php
+                $fromCareer = $student->career_updated_at && $student->career_updated_at->gt($student->updated_at);
+                $selfReported = $fromCareer && $student->latestCareerStatus?->source === 'self_report';
+            @endphp
             <div class="card bg-base-100 shadow" wire:key="student-card-{{ $student->id }}">
                 <div class="card-body p-4 gap-2">
                     <div class="flex items-start justify-between gap-2">
@@ -161,6 +189,21 @@
                     <div class="text-sm text-base-content/70 grid grid-cols-2 gap-1">
                         <span>ปีการศึกษา {{ $student->academicYear?->year }}</span>
                         <span class="text-right">{{ $student->program ?: '—' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 text-xs text-base-content/60">
+                        <span>ปรับปรุง {{ $student->last_updated_at->format('d/m/').($student->last_updated_at->format('Y') + 543) }} · {{ $student->last_updated_human }}</span>
+                        @if (! $student->career_updated_at)
+                            <span class="badge badge-xs badge-outline badge-error shrink-0">ยังไม่มีภาวะการมีงานทำ</span>
+                        @else
+                            <span @class([
+                                'badge badge-xs shrink-0',
+                                'badge-success' => $selfReported,
+                                'badge-warning' => $fromCareer && ! $selfReported,
+                                'badge-ghost' => ! $fromCareer,
+                            ])>
+                                {{ $selfReported ? 'นักศึกษาแจ้งด้วยตนเอง' : ($fromCareer ? 'ภาวะการมีงานทำ' : 'ข้อมูลนักศึกษา') }}
+                            </span>
+                        @endif
                     </div>
                     @if ($canManage)
                         <div class="flex gap-2 mt-2">

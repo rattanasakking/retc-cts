@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\Auditable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -79,6 +80,39 @@ class Student extends Model
     public function routeNotificationForLine(): ?string
     {
         return $this->line_user_id;
+    }
+
+    /**
+     * เวลาที่ภาวะการมีงานทำของนักศึกษาคนนั้นถูกแก้ไขล่าสุด (null ถ้ายังไม่เคยบันทึก)
+     * เป็น SQL ดิบเพื่อให้ใช้ได้ทั้งใน select และ where ของ query เดียวกัน
+     */
+    public static function careerUpdatedSql(): string
+    {
+        return '(select max(career_statuses.updated_at) from career_statuses where career_statuses.student_id = students.id)';
+    }
+
+    /**
+     * "ปรับปรุงล่าสุด" = เวลาที่ใหม่กว่าระหว่างแถวนักศึกษาเองกับภาวะการมีงานทำของเขา
+     * เขียนด้วย CASE WHEN แทน GREATEST()/MAX() หลายอาร์กิวเมนต์ เพราะ MySQL กับ
+     * SQLite (ที่ใช้ตอนรันเทสต์) รองรับฟังก์ชันคนละตัวกัน แต่ CASE ใช้ได้ทั้งคู่
+     */
+    public static function lastUpdatedSql(): string
+    {
+        $career = static::careerUpdatedSql();
+
+        return "(case when {$career} is not null and {$career} > students.updated_at then {$career} else students.updated_at end)";
+    }
+
+    /**
+     * เพิ่มคอลัมน์ last_updated_at และ career_updated_at ให้ทุกแถว — หน้าที่แสดง
+     * "ปรับปรุงล่าสุด" ใช้นิยามเดียวกันหมด จะได้ไม่มีหน้าไหนบอกเวลาไม่ตรงกัน
+     */
+    public function scopeWithLastUpdated(Builder $query): Builder
+    {
+        return $query
+            ->select('students.*')
+            ->selectRaw(static::lastUpdatedSql().' as last_updated_at')
+            ->selectRaw(static::careerUpdatedSql().' as career_updated_at');
     }
 
     public function auditModule(): string

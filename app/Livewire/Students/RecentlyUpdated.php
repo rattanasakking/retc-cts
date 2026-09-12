@@ -161,36 +161,14 @@ class RecentlyUpdated extends Component
         );
     }
 
-    /**
-     * เวลาที่ภาวะการมีงานทำของนักศึกษาคนนั้นถูกแก้ไขล่าสุด (null ถ้ายังไม่เคยบันทึก)
-     */
-    private function careerUpdatedSql(): string
-    {
-        return '(select max(career_statuses.updated_at) from career_statuses where career_statuses.student_id = students.id)';
-    }
-
-    /**
-     * "ปรับปรุงล่าสุด" = เวลาที่ใหม่กว่าระหว่างแถวนักศึกษาเองกับภาวะการมีงานทำของเขา
-     * เขียนด้วย CASE WHEN แทน GREATEST()/MAX() หลายอาร์กิวเมนต์ เพราะ MySQL กับ
-     * SQLite (ที่ใช้ตอนรันเทสต์) รองรับฟังก์ชันคนละตัวกัน แต่ CASE ใช้ได้ทั้งคู่
-     */
-    private function lastUpdatedSql(): string
-    {
-        $career = $this->careerUpdatedSql();
-
-        return "(case when {$career} is not null and {$career} > students.updated_at then {$career} else students.updated_at end)";
-    }
-
     private function baseQuery()
     {
-        $career = $this->careerUpdatedSql();
-        $lastUpdated = $this->lastUpdatedSql();
+        $career = Student::careerUpdatedSql();
+        $lastUpdated = Student::lastUpdatedSql();
 
         return Student::query()
             ->with('academicYear')
-            ->select('students.*')
-            ->selectRaw("{$lastUpdated} as last_updated_at")
-            ->selectRaw("{$career} as career_updated_at")
+            ->withLastUpdated()
             ->when($this->search, function ($query) {
                 $term = '%'.$this->search.'%';
                 $query->where(function ($q) use ($term) {
@@ -235,7 +213,7 @@ class RecentlyUpdated extends Component
     private function countUpdatedSince(CarbonInterface $since): int
     {
         return Student::query()
-            ->whereRaw($this->lastUpdatedSql().' >= ?', [$since])
+            ->whereRaw(Student::lastUpdatedSql().' >= ?', [$since])
             ->count();
     }
 
