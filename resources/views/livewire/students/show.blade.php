@@ -10,20 +10,34 @@
             <h1 class="text-2xl font-bold">{{ $student->prefix }}{{ $student->first_name }} {{ $student->last_name }}</h1>
             <p class="text-sm text-base-content/60 font-mono">{{ $student->student_code }}</p>
         </div>
-        <span @class([
-            'badge badge-lg',
-            'badge-info' => $student->status === 'studying',
-            'badge-success' => $student->status === 'graduated',
-            'badge-error' => $student->status === 'dropped_out',
-        ])>
-            {{ match($student->status) {
-                'studying' => 'กำลังศึกษา',
-                'graduated' => 'จบการศึกษา',
-                'dropped_out' => 'ออกกลางคัน',
-                default => $student->status,
-            } }}
-        </span>
+        <div class="flex items-center gap-2 sm:flex-col sm:items-end">
+            <span @class([
+                'badge badge-lg',
+                'badge-info' => $student->status === 'studying',
+                'badge-success' => $student->status === 'graduated',
+                'badge-error' => $student->status === 'dropped_out',
+            ])>
+                {{ match($student->status) {
+                    'studying' => 'กำลังศึกษา',
+                    'graduated' => 'จบการศึกษา',
+                    'dropped_out' => 'ออกกลางคัน',
+                    default => $student->status,
+                } }}
+            </span>
+            @if ($canRecordCareer)
+                <a href="{{ route('career-statuses.create', ['student' => $student->id]) }}" wire:navigate class="btn btn-primary btn-sm gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    บันทึกภาวะการมีงานทำ
+                </a>
+            @endif
+        </div>
     </div>
+
+    @if (session('success'))
+        <div class="alert alert-success text-sm">{{ session('success') }}</div>
+    @endif
 
     {{-- Student info --}}
     <div class="card bg-base-100 shadow">
@@ -79,6 +93,9 @@
 
             @if ($careerStatuses->isEmpty())
                 <p class="text-sm text-base-content/50 mt-2">ยังไม่มีการบันทึกภาวะการมีงานทำสำหรับนักศึกษาคนนี้</p>
+                @if ($canRecordCareer)
+                    <a href="{{ route('career-statuses.create', ['student' => $student->id]) }}" wire:navigate class="btn btn-outline btn-primary btn-sm w-fit mt-2">บันทึกภาวะการมีงานทำคนนี้</a>
+                @endif
             @else
                 <div class="mt-2 space-y-3">
                     @foreach ($careerStatuses as $careerStatus)

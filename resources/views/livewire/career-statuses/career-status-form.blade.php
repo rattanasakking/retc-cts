@@ -19,7 +19,12 @@
                         <p class="font-semibold">{{ $selectedStudent->prefix }}{{ $selectedStudent->first_name }} {{ $selectedStudent->last_name }}</p>
                         <p class="text-xs text-base-content/60 font-mono">{{ $selectedStudent->student_code }} · {{ $selectedStudent->program ?: '—' }}</p>
                     </div>
-                    <button type="button" wire:click="clearStudent" class="btn btn-ghost btn-xs">เปลี่ยน</button>
+                    <div class="flex items-center gap-1 shrink-0">
+                        @if ($returnToStudentId === $selectedStudent->id)
+                            <a href="{{ route('students.show', $selectedStudent) }}" wire:navigate class="btn btn-ghost btn-xs">กลับไปหน้านักศึกษา</a>
+                        @endif
+                        <button type="button" wire:click="clearStudent" class="btn btn-ghost btn-xs">เปลี่ยน</button>
+                    </div>
                 </div>
             @else
                 <label class="input input-bordered flex items-center gap-2">

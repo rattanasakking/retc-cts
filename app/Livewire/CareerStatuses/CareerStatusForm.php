@@ -27,6 +27,12 @@ class CareerStatusForm extends Component
 
     public ?int $selectedStudentId = null;
 
+    /**
+     * นักศึกษาที่หน้านี้ถูกเปิดมาจาก (ปุ่มบนหน้าข้อมูลนักศึกษา) — บันทึกเสร็จแล้ว
+     * พากลับไปหน้าเดิม ไม่ต้องค้นชื่อซ้ำ และไม่ค้างอยู่หน้าฟอร์มเปล่า
+     */
+    public ?int $returnToStudentId = null;
+
     public ?int $academic_year_id = null;
 
     public string $status = '';
@@ -59,6 +65,14 @@ class CareerStatusForm extends Component
     {
         $this->effective_date = now()->toDateString();
         $this->academic_year_id = AcademicYear::where('is_active', true)->value('id');
+
+        // ?student=ID เลือกนักศึกษาให้ล่วงหน้า — ลิงก์จากหน้าข้อมูลนักศึกษาใช้แบบนี้
+        $fromStudent = Student::whereKey(request()->integer('student'))->value('id');
+
+        if ($fromStudent) {
+            $this->selectedStudentId = $fromStudent;
+            $this->returnToStudentId = $fromStudent;
+        }
     }
 
     private function authorizeSubmit(): void
@@ -230,6 +244,12 @@ class CareerStatusForm extends Component
         Company::remember($validated['institution_name'] ?? null, ['kind' => Company::INSTITUTION]);
 
         session()->flash('success', 'บันทึกภาวะการมีงานทำเรียบร้อยแล้ว');
+
+        if ($this->returnToStudentId) {
+            $this->redirect(route('students.show', $this->returnToStudentId), navigate: true);
+
+            return;
+        }
 
         $this->reset(['studentSearch', 'selectedStudentId', 'status', 'company_name', 'position', 'monthly_salary', 'work_location', 'work_province_id', 'work_district_id', 'work_subdistrict_id', 'is_related_to_major', 'notes']);
         $this->employment_type = 'full_time';

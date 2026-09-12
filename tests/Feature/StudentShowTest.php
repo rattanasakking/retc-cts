@@ -79,6 +79,25 @@ class StudentShowTest extends TestCase
             ->assertSee('ยังไม่มีการบันทึกภาวะการมีงานทำสำหรับนักศึกษาคนนี้');
     }
 
+    public function test_staff_get_a_button_to_record_a_career_status_but_executives_do_not(): void
+    {
+        $year = AcademicYear::factory()->create();
+        $student = Student::factory()->create(['academic_year_id' => $year->id]);
+        $link = route('career-statuses.create', ['student' => $student->id]);
+
+        $teacher = User::factory()->create(['role' => UserRole::Teacher]);
+        $this->actingAs($teacher)
+            ->get("/students/{$student->id}")
+            ->assertSee('บันทึกภาวะการมีงานทำ')
+            ->assertSee($link, false);
+
+        // An executive cannot open the form, so the button would only 403.
+        $executive = User::factory()->create(['role' => UserRole::Executive]);
+        $this->actingAs($executive)
+            ->get("/students/{$student->id}")
+            ->assertDontSee($link, false);
+    }
+
     public function test_soft_deleted_student_is_not_viewable(): void
     {
         $year = AcademicYear::factory()->create();

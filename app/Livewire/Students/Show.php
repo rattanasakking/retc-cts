@@ -29,6 +29,8 @@ class Show extends Component
         return view('livewire.students.show', [
             'careerStatuses' => $careerStatuses,
             'canManage' => auth()->user()->hasRole(UserRole::Admin, UserRole::DepartmentHead),
+            // กลุ่มเดียวกับที่เข้าหน้าบันทึกภาวะการมีงานทำได้ (ดู routes/web.php)
+            'canRecordCareer' => auth()->user()->hasRole(UserRole::Admin, UserRole::Teacher, UserRole::DepartmentHead),
         ]);
     }
 }

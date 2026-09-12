@@ -41,6 +41,43 @@ class CareerStatusFormTest extends TestCase
         }
     }
 
+    public function test_the_form_can_be_opened_with_a_student_already_chosen(): void
+    {
+        $teacher = User::factory()->create(['role' => UserRole::Teacher]);
+        $year = AcademicYear::factory()->create(['is_active' => true]);
+        $student = Student::factory()->create(['academic_year_id' => $year->id, 'first_name' => 'สมหญิง']);
+
+        // The button on the student page links here with ?student=ID.
+        $this->actingAs($teacher)
+            ->get('/career-statuses/create?student='.$student->id)
+            ->assertOk()
+            ->assertSee('สมหญิง')
+            ->assertSee('กลับไปหน้านักศึกษา');
+
+        // Saving from there lands back on the student, not on an empty form.
+        Livewire::actingAs($teacher)
+            ->withQueryParams(['student' => $student->id])
+            ->test(CareerStatusForm::class)
+            ->assertSet('selectedStudentId', $student->id)
+            ->set('status', 'unemployed')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('students.show', $student));
+
+        $this->assertDatabaseHas('career_statuses', ['student_id' => $student->id, 'status' => 'unemployed']);
+    }
+
+    public function test_an_unknown_student_id_in_the_url_is_ignored(): void
+    {
+        $teacher = User::factory()->create(['role' => UserRole::Teacher]);
+
+        Livewire::actingAs($teacher)
+            ->withQueryParams(['student' => 999999])
+            ->test(CareerStatusForm::class)
+            ->assertSet('selectedStudentId', null)
+            ->assertSet('returnToStudentId', null);
+    }
+
     public function test_student_search_finds_matching_students(): void
     {
         $teacher = User::factory()->create(['role' => UserRole::Teacher]);
